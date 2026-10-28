@@ -1,12 +1,17 @@
 <?php
 /**
- * Writes tests/preview-time-card.html: the Time Card Calculator exactly as
- * [orbit_tool name="time-card"] prints it, with the plugin's CSS and scripts.
- * The preview opens straight from the file; it needs no server and no WordPress.
+ * Writes tests/preview-<tool>.html: a tool exactly as [orbit_tool name="<tool>"] prints it,
+ * with the plugin's CSS and scripts. The preview opens straight from the file; it needs no
+ * server and no WordPress.
  *
- *   php tests/build-preview.php
+ *   php tests/build-preview.php                      (the time card)
+ *   php tests/build-preview.php countdown
  *
- * Shortcode attributes can be passed too: php tests/build-preview.php rate=20 ot=california
+ * Shortcode attributes can be passed too: php tests/build-preview.php rate=20 ot=california,
+ * php tests/build-preview.php countdown mode=from days=75 tabs=0 --out=/tmp/from.html
+ *
+ * The countdown preview has a "Fake now" bar: it reloads the page with ?ocnow=2026-12-31T23:59:50,
+ * which sets data-oc-now on the tool so the app runs from that moment (the clock still ticks).
  *
  * @package OrbitCorner_Tools
  */
@@ -32,6 +37,10 @@ function esc_html__( $text ) {
 function wp_json_encode( $data, $flags = 0 ) {
 	return json_encode( $data, $flags );
 }
+function sanitize_text_field( $text ) {
+	return trim( preg_replace( '/[\r\n\t ]+/', ' ', strip_tags( (string) $text ) ) );
+}
+function do_action() {}
 function sanitize_key( $key ) {
 	return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $key ) );
 }
@@ -50,7 +59,7 @@ function home_url( $path = '' ) {
 	return 'https://orbitcorner.com' . $path;
 }
 function get_permalink() {
-	return 'https://orbitcorner.com/tools/time-card-calculator/';
+	return $GLOBALS['oc_preview_permalink'];
 }
 function wp_parse_url( $url, $component = -1 ) {
 	return parse_url( $url, $component ); // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url
@@ -79,16 +88,55 @@ function wp_add_inline_script() {}
 
 require dirname( __DIR__ ) . '/orbitcorner-tools.php';
 
-$atts = array( 'name' => 'time-card' );
+$name = 'time-card';
+$out  = '';
+$atts = array();
 foreach ( array_slice( $argv, 1 ) as $arg ) {
-	list( $key, $value ) = array_pad( explode( '=', $arg, 2 ), 2, '' );
+	if ( 0 === strpos( $arg, '--out=' ) ) {
+		$out = substr( $arg, 6 );
+		continue;
+	}
+	if ( false === strpos( $arg, '=' ) ) {
+		$name = $arg;
+		continue;
+	}
+	list( $key, $value ) = explode( '=', $arg, 2 );
 	$atts[ $key ]        = $value;
 }
+$atts['name'] = $name;
 
-$tool    = oc_tools_registry()['time-card'];
-$scripts = '';
-foreach ( $tool['scripts'] as $file ) {
-	$scripts .= '  <script src="../tools/time-card/' . $file . '"></script>' . "\n";
+$pages = array(
+	'time-card' => array( 'Free Time Card Calculator (Hours &amp; Overtime)', 'https://orbitcorner.com/tools/time-card-calculator/' ),
+	'countdown' => array( 'Countdown &amp; Date Calculator', 'https://orbitcorner.com/tools/countdown/' ),
+);
+$page                            = isset( $pages[ $name ] ) ? $pages[ $name ] : array( $name, 'https://orbitcorner.com/tools/' . $name . '/' );
+$GLOBALS['oc_preview_permalink'] = $page[1];
+$tool                            = oc_tools_registry()[ $name ];
+$file                            = '' !== $out ? $out : __DIR__ . '/preview-' . $name . '.html';
+$src                             = '' !== $out ? 'file://' . dirname( __DIR__ ) . '/' : '../';
+$scripts                         = '';
+$bar                             = '';
+
+if ( 'countdown' === $name ) {
+	// Not part of the plugin: lets you test any moment. The app reads data-oc-now only if it is set.
+	$bar      = '
+  <form method="get" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;max-width:1200px;margin:16px auto 0;padding:0 16px;font-size:14px">
+    <label>Fake now <input type="datetime-local" step="1" name="ocnow" id="ocnow"></label>
+    <button>Apply</button> <a href="?">Real time</a>
+  </form>';
+	$scripts .= '  <script>
+    (function () {
+      var now = new URLSearchParams(location.search).get("ocnow");
+      if (now) {
+        document.getElementById("ocnow").value = now;
+        [].forEach.call(document.querySelectorAll("[data-oc-tool]"), function (el) { el.setAttribute("data-oc-now", now); });
+      }
+    }());
+  </script>
+';
+}
+foreach ( $tool['scripts'] as $script ) {
+	$scripts .= '  <script src="' . $src . 'tools/' . $tool['folder'] . '/' . $script . '"></script>' . "\n";
 }
 
 $html = '<!doctype html>
@@ -97,8 +145,8 @@ $html = '<!doctype html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Time Card Calculator: local preview</title>
-  <link rel="stylesheet" href="../assets/oc-tools.css">
+  <title>' . $tool['title'] . ': local preview</title>
+  <link rel="stylesheet" href="' . $src . 'assets/oc-tools.css">
   <style>
     /* Stand-ins for the theme: Inter body, sticky header, content width. */
     body {
@@ -134,14 +182,14 @@ $html = '<!doctype html>
   </style>
 </head>
 <body>
-  <header class="site-header">OrbitCorner · local preview (sticky header stand-in)</header>
+  <header class="site-header">OrbitCorner · local preview (sticky header stand-in)</header>' . $bar . '
   <main class="entry-content">
-    <h1>Free Time Card Calculator (Hours &amp; Overtime)</h1>
+    <h1>' . $page[0] . '</h1>
     ' . oc_tools_shortcode( $atts ) . '
   </main>
 ' . $scripts . '</body>
 </html>
 ';
 
-file_put_contents( __DIR__ . '/preview-time-card.html', $html );
-echo 'Wrote tests/preview-time-card.html (' . strlen( $html ) . " bytes)\n";
+file_put_contents( $file, $html );
+echo 'Wrote ' . $file . ' (' . strlen( $html ) . " bytes)\n";

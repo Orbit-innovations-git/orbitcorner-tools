@@ -1382,3 +1382,397 @@
     font-size: 11px;
   }
 }
+
+/* ------------------------------------------------------------------
+ * Countdown & Date Tool: one column, up to 720px.
+ * ------------------------------------------------------------------ */
+
+.oc-app .oc-cd {
+  --oc-line: #8291A6; /* Form borders: 3:1 on white. */
+  --oc-red: #B91C1C;
+  --oc-fs: clamp(26px, 10cqi, 44px); /* Counter digits. */
+  display: grid;
+  gap: 16px;
+  max-width: 720px;
+  margin: 0 auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.oc-app .oc-cd :focus-visible {
+  outline: 3px solid var(--oc-primary);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+.oc-app .oc-cd :is(button, input, select) {
+  font-family: inherit;
+}
+
+/* Tabs */
+.oc-app .oc-cd-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--oc-border);
+  border-radius: 16px;
+  background: var(--oc-card);
+}
+
+.oc-app .oc-cd button[role="tab"] {
+  min-height: 44px;
+  margin: 0;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  box-shadow: none;
+  color: var(--oc-text);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.oc-app .oc-cd button[role="tab"]:hover {
+  color: var(--oc-heading);
+}
+
+.oc-app .oc-cd button[aria-selected="true"] {
+  background: var(--oc-primary);
+  color: #FFFFFF;
+}
+
+/* Inputs: one row that wraps */
+.oc-app .oc-cd-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.oc-app .oc-cd-field {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+
+.oc-app .oc-cd-wide,
+.oc-app .oc-cd-chips {
+  flex-basis: 100%;
+}
+
+.oc-app .oc-cd .oc-cd-in {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: 48px;
+  margin: 0;
+  padding: 0 12px;
+  border: 1px solid var(--oc-line);
+  border-radius: 12px;
+  background: var(--oc-card);
+  box-shadow: none;
+  color: var(--oc-heading);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: normal;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.oc-app .oc-cd textarea.oc-cd-in {
+  height: auto;
+  padding: 10px 12px;
+  font-size: 14px;
+}
+
+.oc-app .oc-cd .oc-cd-in::-webkit-date-and-time-value {
+  text-align: left;
+}
+
+.oc-app .oc-cd-select {
+  position: relative;
+}
+
+.oc-app .oc-cd-select select.oc-cd-in {
+  padding-right: 40px;
+  cursor: pointer;
+}
+
+.oc-app .oc-cd-select::after {
+  content: "";
+  position: absolute;
+  top: 47px;
+  right: 18px;
+  width: 8px;
+  height: 8px;
+  border: solid var(--oc-text);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
+.oc-app .oc-cd [aria-invalid="true"] {
+  border: 2px solid var(--oc-red);
+}
+
+.oc-app .oc-cd-err {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  color: var(--oc-red);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.oc-app .oc-cd-err::before {
+  content: "!";
+  content: "!" / "";
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--oc-red);
+  color: #FFFFFF;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 18px;
+  text-align: center;
+}
+
+.oc-app .oc-cd-chips,
+.oc-app .oc-cd-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.oc-app .oc-cd button.oc-cd-chip {
+  min-height: 44px;
+  margin: 0;
+  padding: 0 14px;
+  border: 1px solid var(--oc-line);
+  border-radius: 999px;
+  background: var(--oc-card);
+  box-shadow: none;
+  color: var(--oc-heading);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.oc-app .oc-cd button.oc-cd-chip:hover {
+  border-color: var(--oc-primary);
+  color: var(--oc-primary-hover);
+}
+
+.oc-app .oc-cd-step {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) 48px;
+  gap: 8px;
+}
+
+.oc-app .oc-cd-step button.oc-btn-outline {
+  min-height: 48px;
+  padding: 0;
+  font-size: 22px;
+}
+
+.oc-app .oc-cd-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  margin: 0;
+  color: var(--oc-heading);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.oc-app .oc-cd-check input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--oc-primary);
+}
+
+/* Answer */
+.oc-app .oc-cd-ans h2.oc-eyebrow {
+  margin: 0;
+  padding: 0;
+  font-family: inherit;
+  line-height: 1.4;
+}
+
+.oc-app .oc-cd-ans .oc-big {
+  margin: 8px 0;
+}
+
+.oc-app .oc-cd-ans.is-stale > :not(h2, .oc-cd-actions) {
+  opacity: 0.45;
+}
+
+.oc-app .oc-cd-count {
+  display: flex;
+  gap: 16px;
+  margin: 12px 0;
+}
+
+.oc-app .oc-cd-box {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 140px;
+  padding: 10px 0 8px;
+  border: 1px solid var(--oc-border);
+  border-radius: 12px;
+  background: var(--oc-bg);
+  color: var(--oc-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.4;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.oc-app .oc-cd-box b,
+.oc-app .oc-cd-box:not([hidden]) ~ .oc-cd-box::before {
+  display: block;
+  color: var(--oc-heading);
+  font-family: var(--oc-heading-font);
+  font-size: var(--oc-fs);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.oc-app .oc-cd-box:not([hidden]) ~ .oc-cd-box::before {
+  content: ":";
+  position: absolute;
+  top: 10px;
+  left: -17px;
+  width: 16px;
+  color: var(--oc-muted);
+}
+
+.oc-app .oc-cd-line {
+  color: var(--oc-heading);
+  font-size: 17px;
+}
+
+.oc-app .oc-cd-line + .oc-cd-line {
+  margin-top: 4px;
+}
+
+.oc-app .oc-cd-line.is-now {
+  color: #0F766E;
+  font-weight: 700;
+}
+
+.oc-app .oc-cd-sub,
+.oc-app .oc-cd-tz {
+  margin-top: 8px;
+  color: var(--oc-muted);
+  font-size: 14px;
+}
+
+.oc-app .oc-cd-tz {
+  margin: -8px 0 0;
+  text-align: center;
+}
+
+.oc-app .oc-cd-bar {
+  height: 8px;
+  margin-top: 16px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--oc-border);
+}
+
+.oc-app .oc-cd-bar span {
+  display: block;
+  height: 100%;
+  background: var(--oc-primary);
+  transition: width 0.15s ease;
+}
+
+.oc-app .oc-cd-back {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-left: 4px solid var(--oc-amber);
+  border-radius: 8px;
+  background: rgba(245, 158, 11, 0.1);
+  color: #92400E;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.oc-app .oc-cd button.oc-btn-outline {
+  gap: 8px;
+}
+
+.oc-app .oc-cd button.oc-cd-next {
+  margin-top: 12px;
+}
+
+.oc-app .oc-cd-actions {
+  margin-top: 16px;
+}
+
+/* Focused pages */
+.oc-app .oc-cd-intro {
+  font-size: 17px;
+}
+
+.oc-app .oc-cd-more ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.oc-app .oc-cd-more a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--oc-primary);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+@container oc-app (max-width: 420px) {
+  .oc-app .oc-cd {
+    --oc-fs: clamp(22px, 10cqi, 34px);
+  }
+
+  .oc-app .oc-cd-tabs {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .oc-app .oc-cd-count {
+    gap: 10px;
+  }
+
+  .oc-app .oc-cd-box:not([hidden]) ~ .oc-cd-box::before {
+    left: -11px;
+    width: 10px;
+  }
+}
+
+@media (forced-colors: active) {
+  .oc-app .oc-cd button[aria-selected="true"] {
+    outline: 2px solid;
+  }
+
+  .oc-app .oc-cd-bar span {
+    background: CanvasText;
+  }
+}

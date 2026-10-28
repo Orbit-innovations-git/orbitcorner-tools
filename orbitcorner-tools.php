@@ -3,7 +3,7 @@
  * Plugin Name:       OrbitCorner Tools
  * Plugin URI:        https://orbitcorner.com/tools/
  * Description:       Free browser-based tools for OrbitCorner. Add a tool to any page or post with a shortcode, e.g. [orbit_tool name="time-card"].
- * Version:           1.2.1
+ * Version:           1.3.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Orbit Innovation
@@ -17,13 +17,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'OC_TOOLS_VERSION', '1.2.1' );
+define( 'OC_TOOLS_VERSION', '1.3.0' );
 define( 'OC_TOOLS_DIR', plugin_dir_path( __FILE__ ) );
 define( 'OC_TOOLS_URL', plugin_dir_url( __FILE__ ) );
 define( 'OC_TOOLS_OPTION', 'oc_tools_rates' );
 define( 'OC_TOOLS_DRAFT', 'oc_tools_rates_draft' ); // Transient that keeps a rejected edit for 5 minutes.
 
 require_once OC_TOOLS_DIR . 'tools/time-card/time-card.php';
+require_once OC_TOOLS_DIR . 'tools/countdown/countdown.php';
 
 /*
  * -------------------------------------------------------------------------
@@ -68,6 +69,18 @@ function oc_tools_registry() {
 			'min_height'  => array( // Measured: 2319px at 599px wide, 1354px at 1280px (tests/preview-time-card.html).
 				'phone'   => 2250,
 				'desktop' => 1300,
+			),
+		),
+		'countdown' => array(
+			'title'       => 'Countdown & Date Tool',
+			'description' => 'Live countdown to any time or date, days until US holidays, the date any number of days from today, and the days between two dates. Free, private and in your own time zone.',
+			'folder'      => 'countdown',
+			'scripts'     => array( 'countdown-calc.js', 'app.js' ),
+			'render'      => 'oc_tools_countdown_render',
+			'options'     => 'oc_tools_countdown_options',
+			'min_height'  => array( // Smallest measured: 635px phone, 627px desktop (tests/preview-countdown.html and tabs="0" pages).
+				'phone'   => 600,
+				'desktop' => 600,
 			),
 		),
 	);
@@ -137,7 +150,8 @@ add_action( 'wp_enqueue_scripts', 'oc_tools_enqueue_style_early', 20 );
 
 /*
  * -------------------------------------------------------------------------
- * Shortcode: [orbit_tool name="take-home"], [orbit_tool name="time-card" rate="20" ot="daily" rounding="15"]
+ * Shortcode: [orbit_tool name="take-home"], [orbit_tool name="time-card" rate="20" ot="daily" rounding="15"],
+ * [orbit_tool name="countdown" mode="date" holiday="christmas" tabs="0"]
  * -------------------------------------------------------------------------
  */
 
@@ -158,6 +172,12 @@ function oc_tools_shortcode( $atts ) {
 			'rate'     => '',
 			'ot'       => '',
 			'rounding' => '',
+			'mode'     => '',
+			'target'   => '',
+			'holiday'  => '',
+			'label'    => '',
+			'days'     => '',
+			'tabs'     => '',
 		),
 		$atts,
 		'orbit_tool'
@@ -218,8 +238,11 @@ function oc_tools_shortcode( $atts ) {
 		);
 	}
 
+	// Focused pages (tabs="0") link to related pages in their own content.
+	$related = isset( $options['tabs'] ) && 0 === $options['tabs'] ? '' : oc_tools_related_html( $name );
+	$after   = '';
 	if ( isset( $tool['render'] ) && is_callable( $tool['render'] ) ) {
-		$inner = call_user_func( $tool['render'], $uid, $options ); // The render function escapes everything it prints.
+		$inner = call_user_func( $tool['render'], $uid, $options ) . $related; // The render function escapes everything it prints.
 	} else {
 		$inner = sprintf(
 			'<p class="oc-app-loading">%1$s</p><noscript><p class="oc-app-error">%2$s</p></noscript>',
@@ -227,9 +250,11 @@ function oc_tools_shortcode( $atts ) {
 			esc_html( sprintf( __( 'Loading %s…', 'orbitcorner-tools' ), $tool['title'] ) ),
 			esc_html__( 'This calculator needs JavaScript turned on in your browser.', 'orbitcorner-tools' )
 		);
+		// The script replaces everything inside the container, so the list goes after it.
+		$after = $related ? '<div class="oc-app">' . $related . '</div>' : '';
 	}
 
-	return '<div class="oc-app"' . $attributes . '>' . $inner . oc_tools_related_html( $name ) . '</div>' . oc_tools_schema( $name, $tool );
+	return '<div class="oc-app"' . $attributes . '>' . $inner . '</div>' . $after . oc_tools_schema( $name, $tool );
 }
 add_shortcode( 'orbit_tool', 'oc_tools_shortcode' );
 
