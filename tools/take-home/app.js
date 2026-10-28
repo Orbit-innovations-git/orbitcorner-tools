@@ -254,7 +254,7 @@
             '<span class="oc-copy-status" role="status" data-oc-status></span>' +
             '<div class="oc-copy-fallback" data-oc-fallback hidden>' +
               '<label class="oc-label" for="' + esc(uid + '-link') + '">Copy this link:</label>' +
-              '<input class="oc-input" type="text" id="' + esc(uid + '-link') + '" readonly data-oc-link>' +
+              '<div class="oc-input-wrap"><input class="oc-input" type="text" id="' + esc(uid + '-link') + '" readonly data-oc-link></div>' +
             '</div>' +
           '</div>' +
           buildHow() +

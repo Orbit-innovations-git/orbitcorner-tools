@@ -1,0 +1,705 @@
+/**
+ * OrbitCorner Tools: shared styles.
+ *
+ * Everything is scoped under .oc-app so nothing leaks into the theme.
+ * Selectors like "input.oc-input" are a little more specific than the theme's
+ * own form, button and table styles, so these win without !important.
+ */
+
+/* ------------------------------------------------------------------
+ * Design tokens and base
+ * ------------------------------------------------------------------ */
+
+.oc-app {
+  --oc-primary: #5B5BF6;
+  --oc-primary-hover: #4338CA;
+  --oc-heading: #0F172A;
+  --oc-text: #475569;
+  --oc-muted: #64748B;
+  --oc-border: #E2E8F0;
+  --oc-bg: #F8FAFC;
+  --oc-card: #FFFFFF;
+  --oc-teal: #14B8A6;
+  --oc-amber: #F59E0B;
+
+  --oc-ring: 0 0 0 3px rgba(91, 91, 246, 0.2);
+  --oc-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.04);
+  --oc-heading-font: var(--global-heading-font-family, inherit); /* Kadence's heading font. */
+
+  container: oc-app / inline-size;
+  width: 100%; /* A size container can't shrink-wrap its content, so give it the full width. */
+  color: var(--oc-text);
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.oc-app *,
+.oc-app *::before,
+.oc-app *::after {
+  box-sizing: border-box;
+}
+
+.oc-app [hidden] {
+  display: none !important;
+}
+
+.oc-app p,
+.oc-app ol,
+.oc-app h3,
+.oc-app fieldset,
+.oc-app legend {
+  margin: 0;
+  padding: 0;
+}
+
+.oc-app fieldset {
+  border: 0;
+  min-width: 0;
+}
+
+.oc-app strong {
+  color: inherit;
+  font-weight: 700;
+}
+
+.oc-app .oc-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ------------------------------------------------------------------
+ * Loading and error states (printed by the shortcode)
+ * ------------------------------------------------------------------ */
+
+.oc-app .oc-app-loading {
+  padding: 24px;
+  color: var(--oc-muted);
+  font-size: 15px;
+}
+
+.oc-app .oc-app-error {
+  padding: 14px 16px;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 12px;
+  background: rgba(245, 158, 11, 0.1);
+  color: #92400E;
+  font-size: 15px;
+}
+
+/* ------------------------------------------------------------------
+ * Layout
+ * ------------------------------------------------------------------ */
+
+.oc-app .oc-th {
+  display: grid;
+  grid-template-columns: minmax(0, 380px) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.oc-app .oc-th-results,
+.oc-app .oc-th-output {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.oc-app .oc-card {
+  background: var(--oc-card);
+  border: 1px solid var(--oc-border);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: var(--oc-shadow);
+  min-width: 0;
+}
+
+@media (min-width: 861px) {
+  .oc-app .oc-th-form {
+    position: sticky;
+    top: 96px; /* Clears the site's sticky header. */
+  }
+}
+
+@media (max-width: 860px) {
+  .oc-app .oc-th {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Also stack when the content area itself is narrow, even on a wide screen. */
+@container oc-app (max-width: 820px) {
+  .oc-app .oc-th {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .oc-app .oc-th-form {
+    position: static;
+  }
+}
+
+/* ------------------------------------------------------------------
+ * Form
+ * ------------------------------------------------------------------ */
+
+.oc-app .oc-field + .oc-field {
+  margin-top: 20px;
+}
+
+.oc-app .oc-label {
+  display: block;
+  width: 100%;
+  margin-bottom: 8px;
+  color: var(--oc-heading);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.oc-app .oc-hint {
+  margin-top: 6px;
+  color: var(--oc-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+/* The wrapper is the visible box, so the $ / Rs / % sit inside it. */
+.oc-app .oc-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  padding: 0 16px;
+  border: 1px solid var(--oc-border);
+  border-radius: 12px;
+  background: var(--oc-bg);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.oc-app .oc-input-wrap:focus-within {
+  border-color: var(--oc-primary);
+  background: var(--oc-card);
+  box-shadow: var(--oc-ring);
+}
+
+.oc-app .oc-affix {
+  flex: none;
+  color: var(--oc-muted);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.oc-app .oc-input-wrap input.oc-input,
+.oc-app .oc-input-wrap input.oc-input:focus {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  outline: none;
+  background: transparent;
+  box-shadow: none;
+  color: var(--oc-heading);
+  font-family: inherit;
+  font-size: 16px; /* 16px stops iPhone zooming in on focus. */
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: normal;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.oc-app .oc-input-wrap input.oc-input::-webkit-outer-spin-button,
+.oc-app .oc-input-wrap input.oc-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Segmented buttons: real radio inputs, styled labels. */
+.oc-app .oc-seg {
+  position: relative;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--oc-border);
+  border-radius: 999px;
+  background: var(--oc-bg);
+}
+
+.oc-app .oc-seg input.oc-seg-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.oc-app .oc-seg-option {
+  display: flex;
+  flex: 1 1 auto; /* Share space by text length so "Direct client" stays on one line. */
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 40px;
+  margin: 0;
+  padding: 6px 12px;
+  border-radius: 999px;
+  color: var(--oc-text);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.oc-app .oc-seg-input:not(:checked) + .oc-seg-option:hover {
+  color: var(--oc-heading);
+}
+
+.oc-app .oc-seg-input:checked + .oc-seg-option {
+  background: var(--oc-card);
+  color: var(--oc-primary);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.06);
+}
+
+.oc-app .oc-seg-input:focus-visible + .oc-seg-option {
+  outline: 2px solid var(--oc-primary);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------
+ * Results
+ * ------------------------------------------------------------------ */
+
+.oc-app .oc-eyebrow {
+  color: var(--oc-primary);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.oc-app .oc-summary-route {
+  margin-top: 4px;
+  color: var(--oc-heading);
+  font-family: var(--oc-heading-font);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.oc-app .oc-big {
+  margin-top: 12px;
+  color: var(--oc-heading);
+  font-family: var(--oc-heading-font);
+  font-size: 40px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.oc-app .oc-summary-text {
+  margin-top: 6px;
+  font-size: 16px;
+}
+
+.oc-app .oc-summary-text strong {
+  color: var(--oc-heading);
+}
+
+.oc-app .oc-callout {
+  margin-top: 16px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 15px;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+
+.oc-app .oc-callout-save {
+  background: rgba(20, 184, 166, 0.1);
+  color: #0F766E;
+}
+
+.oc-app .oc-callout-tip {
+  background: rgba(91, 91, 246, 0.08);
+  color: #3730A3;
+}
+
+.oc-app .oc-callout + .oc-callout {
+  margin-top: 10px;
+}
+
+.oc-app .oc-empty p {
+  color: var(--oc-text);
+  font-size: 16px;
+}
+
+.oc-app h3.oc-card-title {
+  margin: 0 0 12px;
+  padding: 0;
+  color: var(--oc-heading);
+  font-family: var(--oc-heading-font);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+/* Route list */
+.oc-app ol.oc-routes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.oc-app ol.oc-routes > li.oc-route {
+  margin: 0;
+  padding: 16px;
+  border: 1px solid transparent;
+  border-top-color: var(--oc-border);
+  border-radius: 0;
+}
+
+.oc-app ol.oc-routes > li.oc-route:first-child {
+  border-top-color: transparent;
+}
+
+.oc-app ol.oc-routes > li.oc-route.is-best {
+  border-color: var(--oc-primary);
+  border-radius: 12px;
+  background: rgba(91, 91, 246, 0.05);
+}
+
+.oc-app ol.oc-routes > li.oc-route.is-best + li.oc-route {
+  border-top-color: transparent;
+}
+
+.oc-app .oc-route-head {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  column-gap: 12px;
+  align-items: center;
+}
+
+.oc-app .oc-rank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--oc-border);
+  border-radius: 50%;
+  background: var(--oc-bg);
+  color: var(--oc-text);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.oc-app .is-best .oc-rank {
+  border-color: var(--oc-primary);
+  background: var(--oc-primary);
+  color: #FFFFFF;
+}
+
+.oc-app .oc-route-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  min-width: 0;
+}
+
+.oc-app .oc-route-name {
+  color: var(--oc-heading);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.oc-app .oc-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #F1F5F9;
+  color: var(--oc-muted);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.oc-app .oc-route-amount {
+  color: var(--oc-heading);
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.oc-app .oc-bar,
+.oc-app .oc-details {
+  margin: 10px 0 0 40px; /* Lines up with the route name. */
+}
+
+.oc-app .oc-bar {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--oc-border);
+}
+
+.oc-app .oc-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #94A3B8;
+}
+
+.oc-app .is-best .oc-bar-fill {
+  background: var(--oc-primary);
+}
+
+/* <details>: primary summary with a rotating chevron */
+.oc-app details > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--oc-primary);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  list-style: none;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.oc-app details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.oc-app details > summary::after {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin-top: -3px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform 0.15s ease, margin 0.15s ease;
+}
+
+.oc-app details[open] > summary::after {
+  margin-top: 3px;
+  transform: rotate(-135deg);
+}
+
+.oc-app details > summary:hover {
+  color: var(--oc-primary-hover);
+}
+
+.oc-app details > summary:focus-visible {
+  outline: 2px solid var(--oc-primary);
+  outline-offset: 2px;
+}
+
+/* Breakdown table */
+.oc-app table.oc-breakdown {
+  width: 100%;
+  margin: 12px 0 0;
+  border: 0;
+  border-collapse: collapse;
+  background: transparent;
+  font-size: 14px;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+}
+
+.oc-app table.oc-breakdown th,
+.oc-app table.oc-breakdown td {
+  padding: 8px 0;
+  border: 0;
+  border-bottom: 1px solid var(--oc-border);
+  background: transparent;
+  color: var(--oc-text);
+  font-weight: 400;
+  vertical-align: top;
+}
+
+.oc-app table.oc-breakdown th {
+  text-align: left;
+}
+
+.oc-app table.oc-breakdown td {
+  padding-left: 12px;
+  color: var(--oc-heading);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.oc-app table.oc-breakdown tr.oc-total th,
+.oc-app table.oc-breakdown tr.oc-total td {
+  border-bottom: 0;
+  color: var(--oc-heading);
+  font-weight: 700;
+}
+
+.oc-app .oc-note {
+  margin-top: 10px;
+  color: var(--oc-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* Copy link */
+.oc-app .oc-th-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.oc-app button.oc-btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  margin: 0;
+  padding: 10px 18px;
+  border: 1px solid var(--oc-primary);
+  border-radius: 12px;
+  background: var(--oc-card);
+  box-shadow: none;
+  color: var(--oc-primary);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-transform: none;
+  letter-spacing: normal;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.oc-app button.oc-btn-outline:hover {
+  border-color: var(--oc-primary-hover);
+  background: rgba(91, 91, 246, 0.08);
+  color: var(--oc-primary-hover);
+}
+
+.oc-app button.oc-btn-outline:focus-visible {
+  outline: none;
+  box-shadow: var(--oc-ring);
+}
+
+.oc-app .oc-copy-status {
+  color: #0F766E;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.oc-app .oc-copy-fallback {
+  flex-basis: 100%;
+}
+
+/* How we calculate this */
+.oc-app details.oc-how > summary {
+  font-size: 16px;
+}
+
+.oc-app .oc-how-body {
+  margin-top: 12px;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.oc-app ol.oc-steps {
+  margin: 0 0 12px;
+  padding: 0 0 0 20px;
+  list-style: decimal;
+}
+
+.oc-app ol.oc-steps > li {
+  margin: 0 0 4px;
+  padding: 0;
+}
+
+.oc-app .oc-how-body p + p {
+  margin-top: 10px;
+}
+
+.oc-app .oc-how-body a {
+  color: var(--oc-primary);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.oc-app .oc-how-body a:hover {
+  color: var(--oc-primary-hover);
+}
+
+.oc-app .oc-disclaimer {
+  color: var(--oc-muted);
+  font-size: 13px;
+}
+
+/* ------------------------------------------------------------------
+ * Phones
+ * ------------------------------------------------------------------ */
+
+@media (max-width: 600px) {
+  .oc-app .oc-card {
+    padding: 20px;
+  }
+
+  .oc-app .oc-big {
+    font-size: 32px;
+  }
+
+  .oc-app ol.oc-routes > li.oc-route {
+    padding: 14px 12px;
+  }
+
+  .oc-app .oc-bar,
+  .oc-app .oc-details {
+    margin-left: 0;
+  }
+
+  .oc-app .oc-seg-option {
+    padding: 6px 8px;
+    font-size: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oc-app *,
+  .oc-app *::before,
+  .oc-app *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}
