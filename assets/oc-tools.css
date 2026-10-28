@@ -703,3 +703,638 @@
     animation: none !important;
   }
 }
+
+/* ------------------------------------------------------------------
+ * Time Card Calculator. Phone: tool under 600px (day cards); desktop: 960px+ (two columns).
+ * ------------------------------------------------------------------ */
+
+/* Height from the registry's min_height, so the page doesn't jump while loading. */
+.oc-app[data-oc-tool] {
+  min-height: var(--oc-mh-sm, 0);
+}
+
+@media (min-width: 600px) {
+  .oc-app[data-oc-tool] {
+    min-height: var(--oc-mh, 0);
+  }
+}
+
+.oc-app .oc-tc {
+  --oc-line: #8291A6; /* Form borders: 3:1 on white. */
+  --oc-red: #B91C1C;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  font-variant-numeric: tabular-nums;
+}
+
+.oc-app .oc-tc :focus-visible,
+.oc-app .oc-tc button:focus-visible,
+.oc-app .oc-tc .oc-input-wrap:focus-within {
+  outline: 3px solid var(--oc-primary);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+.oc-app .oc-tc .oc-input-wrap .oc-input:focus-visible {
+  outline: 0; /* The wrapper shows the ring. */
+}
+
+.oc-app .oc-tc :is(input, select, button) {
+  scroll-margin: 96px 0 80px; /* Clear of the sticky header and total bar. */
+}
+
+/* Fields */
+.oc-app .oc-tc .oc-tc-in,
+.oc-app .oc-tc select {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: 48px;
+  margin: 0;
+  padding: 0 10px;
+  border: 1px solid var(--oc-line);
+  border-radius: 12px;
+  background: var(--oc-card);
+  box-shadow: none;
+  color: var(--oc-heading);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: normal;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.oc-app .oc-tc textarea.oc-tc-in {
+  height: auto;
+  padding: 10px;
+  font-size: 14px;
+}
+
+.oc-app .oc-tc .oc-tc-in::-webkit-date-and-time-value {
+  text-align: left;
+}
+
+.oc-app .oc-tc .oc-input-wrap {
+  border-color: var(--oc-line);
+  background: var(--oc-card);
+}
+
+.oc-app .oc-tc-select {
+  position: relative;
+}
+
+.oc-app .oc-tc select {
+  padding: 0 40px 0 14px;
+  cursor: pointer;
+}
+
+.oc-app .oc-tc-select::after {
+  content: "";
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 8px;
+  height: 8px;
+  border: solid var(--oc-text);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
+.oc-app .oc-tc [aria-invalid="true"],
+.oc-app .oc-tc .oc-input-wrap:has([aria-invalid="true"]) {
+  border: 2px solid var(--oc-red);
+}
+
+.oc-app .oc-tc-err {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  color: var(--oc-red);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.oc-app .oc-tc-err::before {
+  content: "!";
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--oc-red);
+  color: #FFFFFF;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 18px;
+  text-align: center;
+}
+
+.oc-app .oc-tc-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--oc-heading);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.oc-app .oc-tc-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  margin: 0;
+  color: var(--oc-heading);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.oc-app .oc-tc-check input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--oc-primary);
+}
+
+.oc-app .oc-tc button.oc-tc-link {
+  min-width: 44px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  box-shadow: none;
+  color: var(--oc-primary);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.oc-app .oc-tc button.oc-btn-outline {
+  gap: 8px;
+}
+
+/* Settings: a bar on wide screens, a collapsed <details> on phones. */
+.oc-app .oc-tc-set {
+  padding: 12px 24px;
+}
+
+.oc-app details.oc-tc-set > summary {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 10px;
+  min-height: 44px;
+  color: var(--oc-heading);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.oc-app details.oc-tc-set > summary::after {
+  order: 1;
+}
+
+.oc-app .oc-tc-set-sum {
+  order: 2;
+  flex: 1 1 100%;
+  color: var(--oc-text);
+  font-weight: 400;
+}
+
+.oc-app .oc-tc-set-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 16px 20px;
+  padding: 8px 0 12px;
+}
+
+.oc-app .oc-tc-field {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+
+.oc-app .oc-tc-field-wide {
+  flex: 2 1 260px;
+}
+
+.oc-app .oc-tc-field-small {
+  flex: 0 1 120px;
+}
+
+.oc-app .oc-tc-field-check {
+  flex: 0 0 auto;
+  padding-top: 30px; /* Lines up with the boxes next to it. */
+}
+
+@container oc-app (min-width: 600px) {
+  @supports selector(::details-content) {
+    .oc-app details.oc-tc-set > summary {
+      display: none;
+    }
+
+    .oc-app .oc-tc-set::details-content {
+      content-visibility: visible;
+    }
+  }
+
+  .oc-app .oc-tc-mini {
+    display: none;
+  }
+}
+
+/* Week table */
+.oc-app .oc-tc-print {
+  margin-bottom: 16px;
+}
+
+.oc-app .oc-tc-print > div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.oc-app table.oc-tc-table {
+  width: 100%;
+  margin: 0;
+  border: 0;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.oc-app .oc-tc-table caption {
+  padding-bottom: 8px;
+  color: var(--oc-heading);
+  font-family: var(--oc-heading-font);
+  font-size: 18px;
+  font-weight: 700;
+  text-align: left;
+}
+
+.oc-app .oc-tc-table :is(th, td) {
+  padding: 8px 4px;
+  border: 0;
+  background: none;
+  color: var(--oc-heading);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-align: left;
+  vertical-align: top;
+}
+
+.oc-app .oc-tc-table thead th {
+  width: 26%;
+  padding-top: 0;
+  border-bottom: 1px solid var(--oc-border);
+  color: var(--oc-text);
+  font-size: 14px;
+}
+
+.oc-app .oc-tc-table thead th:first-child {
+  width: 20%;
+}
+
+.oc-app .oc-tc-table thead th:nth-child(4) {
+  width: 15%;
+}
+
+.oc-app .oc-tc-table thead th:last-child {
+  width: 13%;
+}
+
+.oc-app .oc-tc-table tbody + tbody {
+  border-top: 1px solid var(--oc-border);
+}
+
+.oc-app .oc-tc-table tbody th,
+.oc-app .oc-tc-table .oc-tc-hours {
+  padding-top: 21px;
+}
+
+.oc-app .oc-tc-table .oc-tc-hours,
+.oc-app .oc-tc-table thead th:last-child {
+  font-weight: 700;
+  text-align: right;
+}
+
+.oc-app .oc-tc-hm {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  color: var(--oc-muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.oc-app .oc-tc-table .oc-tc-tools td {
+  padding: 0 0 6px;
+}
+
+.oc-app .oc-tc-next {
+  margin-top: 4px;
+  font-size: 14px;
+}
+
+.oc-app .oc-tc-below {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin-top: 12px;
+}
+
+/* Total kept in view on narrow screens. */
+.oc-app .oc-tc-bar {
+  position: sticky;
+  bottom: 8px;
+  z-index: 2;
+  margin-top: 16px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: var(--oc-heading);
+  color: #FFFFFF;
+  text-align: center;
+}
+
+/* Result */
+.oc-app .oc-tc-result h2.oc-eyebrow {
+  margin: 0;
+  padding: 0;
+  font-family: inherit;
+  line-height: 1.4;
+}
+
+.oc-app .oc-tc-result .oc-big {
+  margin: 8px 0 4px;
+}
+
+.oc-app .oc-tc-result.is-stale :is(.oc-big, th, td) {
+  color: var(--oc-muted);
+}
+
+.oc-app .oc-tc-stale,
+.oc-app .oc-tc-warn {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-left: 4px solid var(--oc-amber);
+  border-radius: 8px;
+  background: rgba(245, 158, 11, 0.1);
+  color: #92400E;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.oc-app .oc-tc-result .oc-tc-gross :is(th, td) {
+  color: #0F766E;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.oc-app ul.oc-tc-mini {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.oc-app .oc-tc-mini li {
+  margin: 0;
+}
+
+.oc-app .oc-tc-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.oc-app .oc-tc-gen {
+  display: none;
+}
+
+/* Desktop: two columns, sticky result. */
+@container oc-app (min-width: 960px) {
+  .oc-app .oc-tc {
+    grid-template-columns: minmax(0, 62fr) minmax(0, 38fr);
+  }
+
+  .oc-app .oc-tc-set {
+    grid-column: 1 / -1;
+  }
+
+  .oc-app .oc-tc-result {
+    position: sticky;
+    top: 96px;
+  }
+
+  .oc-app .oc-tc-bar {
+    display: none;
+  }
+}
+
+/* Phone: each day is a card (same table, stacked). */
+@container oc-app (max-width: 599px) {
+  .oc-app .oc-tc-set {
+    padding: 4px 16px;
+  }
+
+  .oc-app .oc-tc-main {
+    padding: 0;
+    border: 0;
+    background: none;
+    box-shadow: none;
+  }
+
+  .oc-app .oc-tc-table,
+  .oc-app .oc-tc-table :is(caption, tbody, tr) {
+    display: block;
+  }
+
+  .oc-app .oc-tc-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+  }
+
+  .oc-app .oc-tc-table tbody {
+    margin-top: 12px;
+    padding: 12px;
+    border: 1px solid var(--oc-border);
+    border-radius: 16px;
+    background: var(--oc-card);
+  }
+
+  .oc-app .oc-tc-table tr.oc-tc-shift {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 80px;
+    gap: 8px;
+  }
+
+  .oc-app .oc-tc-shift + .oc-tc-shift {
+    margin-top: 12px;
+  }
+
+  .oc-app .oc-tc-table tbody :is(th, td) {
+    display: block;
+    padding: 0;
+  }
+
+  .oc-app .oc-tc-table .oc-tc-shift > th {
+    grid-column: 1 / 3;
+    font-size: 17px;
+  }
+
+  .oc-app .oc-tc-table .oc-tc-hours {
+    grid-area: 1 / 3;
+    padding: 0;
+  }
+
+  .oc-app .oc-tc-table td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 4px;
+    color: var(--oc-text);
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  .oc-app .oc-tc-hm {
+    position: static;
+    display: block;
+    width: auto;
+    height: auto;
+    clip: auto;
+  }
+
+  .oc-app .oc-tc .oc-tc-in {
+    padding: 0 8px;
+  }
+
+  .oc-app .oc-tc .oc-tc-in::-webkit-calendar-picker-indicator {
+    display: none; /* Phones open their own picker. */
+  }
+
+  .oc-app .oc-tc-table .oc-tc-tools td {
+    display: flex;
+    justify-content: space-between;
+    margin: 4px -8px -8px;
+  }
+}
+
+@container oc-app (max-width: 329px) {
+  .oc-app .oc-tc-table tr.oc-tc-shift,
+  .oc-app .oc-tc-print > div {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .oc-app .oc-tc-table .oc-tc-shift > th {
+    grid-column: 1;
+  }
+
+  .oc-app .oc-tc-table .oc-tc-hours {
+    grid-column: 2;
+  }
+}
+
+@media (forced-colors: active) {
+  .oc-app .oc-tc-bar {
+    border: 1px solid;
+  }
+}
+
+/* Print: a one-page time sheet. Only these rules reach outside .oc-app. */
+@media print {
+  body:has(.oc-tc) :is(#masthead, #colophon, .site-header, .site-footer, #secondary, .entry-hero, .entry-header, .comments-area, .post-navigation, #kt-scroll-up),
+  body:has(.oc-tc) .entry-content > :not(.oc-app, :has(.oc-tc)),
+  .oc-app .oc-tc :is(.oc-tc-set-title, .oc-tc-set-body, .oc-tc-tools, .oc-tc-below, .oc-tc-bar, .oc-tc-mini, .oc-tc-actions, .oc-copy-fallback, [data-tc-f="hint"], .oc-tc-stale, .oc-note, legend, noscript),
+  .oc-app details.oc-tc-set > summary::after {
+    display: none !important;
+  }
+
+  .oc-app[data-oc-tool] {
+    min-height: 0;
+  }
+
+  .oc-app .oc-tc {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .oc-app .oc-tc-set {
+    order: 1; /* The settings line goes last. */
+  }
+
+  .oc-app .oc-card {
+    padding: 0;
+    border: 0;
+    background: none;
+    box-shadow: none;
+  }
+
+  .oc-app .oc-tc-print::before {
+    content: "Time card";
+    display: block;
+    margin-bottom: 8px;
+    font-size: 22px;
+    font-weight: 800;
+  }
+
+  .oc-app details.oc-tc-set > summary {
+    display: block;
+    min-height: 0;
+    font-size: 11px;
+  }
+
+  .oc-app .oc-tc .oc-tc-in {
+    height: 24px;
+    padding: 0;
+    border: 0;
+    background: none;
+    font-size: 13px;
+  }
+
+  .oc-app .oc-tc-print .oc-tc-in {
+    border-bottom: 1px solid #000000;
+    border-radius: 0;
+  }
+
+  .oc-app .oc-tc .oc-tc-in::-webkit-calendar-picker-indicator {
+    display: none;
+  }
+
+  .oc-app .oc-tc-table :is(th, td, tbody th, .oc-tc-hours) {
+    padding: 2px 4px;
+    font-size: 13px;
+  }
+
+  .oc-app .oc-tc-result {
+    margin-top: 16px;
+    break-inside: avoid;
+  }
+
+  .oc-app .oc-tc-result .oc-big {
+    font-size: 28px;
+  }
+
+  .oc-app .oc-tc-gen {
+    display: block;
+    margin-top: 12px;
+    font-size: 11px;
+  }
+}

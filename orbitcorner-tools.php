@@ -2,8 +2,8 @@
 /**
  * Plugin Name:       OrbitCorner Tools
  * Plugin URI:        https://orbitcorner.com/tools/
- * Description:       Free browser-based tools for OrbitCorner. Add a tool to any page or post with [orbit_tool name="take-home"].
- * Version:           1.0.0
+ * Description:       Free browser-based tools for OrbitCorner. Add a tool to any page or post with a shortcode, e.g. [orbit_tool name="time-card"].
+ * Version:           1.2.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Orbit Innovation
@@ -17,11 +17,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'OC_TOOLS_VERSION', '1.0.0' );
+define( 'OC_TOOLS_VERSION', '1.2.0' );
 define( 'OC_TOOLS_DIR', plugin_dir_path( __FILE__ ) );
 define( 'OC_TOOLS_URL', plugin_dir_url( __FILE__ ) );
 define( 'OC_TOOLS_OPTION', 'oc_tools_rates' );
 define( 'OC_TOOLS_DRAFT', 'oc_tools_rates_draft' ); // Transient that keeps a rejected edit for 5 minutes.
+
+require_once OC_TOOLS_DIR . 'tools/time-card/time-card.php';
 
 /*
  * -------------------------------------------------------------------------
@@ -34,6 +36,16 @@ define( 'OC_TOOLS_DRAFT', 'oc_tools_rates_draft' ); // Transient that keeps a re
  *
  * To add a tool: create tools/<folder>/ with its scripts and add one entry here.
  *
+ * Optional keys:
+ *   rates      true if the tool needs window.OCToolData (the rates.json data).
+ *   render     Function( $uid, $options ) that returns the tool's HTML, printed inside the
+ *              container. Without it the container shows "Loading…" until the script builds the tool.
+ *   options    Function( $atts ) that returns the tool's cleaned shortcode attributes, passed to
+ *              render and to the browser as data-oc-options.
+ *   min_height array( 'phone' => px, 'desktop' => px ): reserves the tool's height so the page
+ *              doesn't jump while it loads. Use the smallest height measured in each range
+ *              (phone: up to 599px wide, desktop: 600px and up).
+ *
  * @return array
  */
 function oc_tools_registry() {
@@ -42,6 +54,18 @@ function oc_tools_registry() {
 			'title'   => 'Freelancer Take-Home Calculator',
 			'folder'  => 'take-home',
 			'scripts' => array( 'calc.js', 'app.js' ), // Load order matters.
+			'rates'   => true,
+		),
+		'time-card' => array(
+			'title'      => 'Time Card Calculator',
+			'folder'     => 'time-card',
+			'scripts'    => array( 'time-card-calc.js', 'app.js' ),
+			'render'     => 'oc_tools_time_card_render',
+			'options'    => 'oc_tools_time_card_options',
+			'min_height' => array( // Measured: 2198px at 599px wide, 1256px at 1280px (tests/preview-time-card.html).
+				'phone'   => 2100,
+				'desktop' => 1200,
+			),
 		),
 	);
 }
@@ -110,7 +134,7 @@ add_action( 'wp_enqueue_scripts', 'oc_tools_enqueue_style_early', 20 );
 
 /*
  * -------------------------------------------------------------------------
- * Shortcode: [orbit_tool name="take-home"]
+ * Shortcode: [orbit_tool name="take-home"], [orbit_tool name="time-card" rate="20" ot="daily" rounding="15"]
  * -------------------------------------------------------------------------
  */
 
@@ -124,7 +148,17 @@ function oc_tools_shortcode( $atts ) {
 	static $counts    = array();
 	static $data_sent = false;
 
-	$atts     = shortcode_atts( array( 'name' => '' ), $atts, 'orbit_tool' );
+	// Tool settings; each tool's 'options' function decides which it accepts and cleans them.
+	$atts     = shortcode_atts(
+		array(
+			'name'     => '',
+			'rate'     => '',
+			'ot'       => '',
+			'rounding' => '',
+		),
+		$atts,
+		'orbit_tool'
+	);
 	$name     = sanitize_key( $atts['name'] );
 	$registry = oc_tools_registry();
 
@@ -158,7 +192,7 @@ function oc_tools_shortcode( $atts ) {
 		wp_enqueue_script( $handle );
 	}
 
-	if ( ! $data_sent && $handles ) {
+	if ( ! $data_sent && $handles && ! empty( $tool['rates'] ) ) {
 		// JSON_HEX_TAG turns < and > into < / > so the data can never close the <script> tag.
 		$json = wp_json_encode( oc_tools_get_rates(), JSON_HEX_TAG | JSON_HEX_AMP );
 		wp_add_inline_script( $handles[0], 'window.OCToolData = ' . $json . ';', 'before' );
@@ -166,11 +200,29 @@ function oc_tools_shortcode( $atts ) {
 	}
 
 	$counts[ $name ] = isset( $counts[ $name ] ) ? $counts[ $name ] + 1 : 1;
+	$uid             = 'oc-app-' . $name . '-' . $counts[ $name ];
+	$options         = isset( $tool['options'] ) && is_callable( $tool['options'] ) ? (array) call_user_func( $tool['options'], $atts ) : array();
+
+	$attributes = ' id="' . esc_attr( $uid ) . '" data-oc-tool="' . esc_attr( $name ) . '"';
+	if ( $options ) {
+		$attributes .= ' data-oc-options="' . esc_attr( wp_json_encode( $options ) ) . '"';
+	}
+	if ( ! empty( $tool['min_height'] ) ) {
+		$attributes .= sprintf(
+			' style="--oc-mh:%dpx;--oc-mh-sm:%dpx"',
+			isset( $tool['min_height']['desktop'] ) ? (int) $tool['min_height']['desktop'] : 0,
+			isset( $tool['min_height']['phone'] ) ? (int) $tool['min_height']['phone'] : 0
+		);
+	}
+
+	if ( isset( $tool['render'] ) && is_callable( $tool['render'] ) ) {
+		// The render function escapes everything it prints.
+		return '<div class="oc-app"' . $attributes . '>' . call_user_func( $tool['render'], $uid, $options ) . '</div>';
+	}
 
 	return sprintf(
-		'<div class="oc-app" id="%1$s" data-oc-tool="%2$s"><p class="oc-app-loading">%3$s</p><noscript><p class="oc-app-error">%4$s</p></noscript></div>',
-		esc_attr( 'oc-app-' . $name . '-' . $counts[ $name ] ),
-		esc_attr( $name ),
+		'<div class="oc-app"%1$s><p class="oc-app-loading">%2$s</p><noscript><p class="oc-app-error">%3$s</p></noscript></div>',
+		$attributes,
 		/* translators: %s: tool title. */
 		esc_html( sprintf( __( 'Loading %s…', 'orbitcorner-tools' ), $tool['title'] ) ),
 		esc_html__( 'This calculator needs JavaScript turned on in your browser.', 'orbitcorner-tools' )

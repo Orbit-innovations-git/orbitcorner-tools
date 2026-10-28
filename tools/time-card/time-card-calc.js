@@ -1,17 +1,7 @@
 /**
- * Time Card Calculator: the math.
- *
- * Pure functions, no DOM access. In the browser it is window.OCTimeCardCalc;
- * in Node it is module.exports (see tests/time-card.test.js).
- *
- *   compute(input) -> result
- *   input  = { days: [{ name, shifts: [{ in, out, nextDay, breakMin }] }],
- *              rate, otRule, otMultiplier, rounding, deductBreaks }
- *   result = { days: [{ name, minutes, shifts: [{ minutes, rawMinutes, start, error, field }], error }],
- *              totalMinutes, regularMinutes, overtimeMinutes, doubleMinutes, daysWorked,
- *              pay: null | { regular, overtime, double, gross }, warnings, hasErrors, ... }
- *
- * Times are 24-hour "HH:MM" strings, as <input type="time"> gives them. Durations are minutes.
+ * Time Card Calculator: the math, with no DOM access. window.OCTimeCardCalc in the browser,
+ * module.exports in Node. Durations are minutes; times are 24-hour "HH:MM" strings.
+ * Input and result shapes are in README.md.
  */
 (function (root) {
   'use strict';
@@ -20,10 +10,8 @@
   var WEEK_LIMIT = 2400; // 40 h a week: federal (FLSA) and California overtime.
   var DAY_LIMIT = 480; // 8 h a day: daily overtime.
   var DOUBLE_LIMIT = 720; // 12 h a day: California double time.
-  var LONG_SHIFT = 960; // Warn about shifts over 16 h.
   var RULES = ['weekly', 'daily', 'california', 'none'];
-  var FULL_DAY = { Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday' };
-
+  var DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   var MSG = {
     time: 'Enter a time, like 9:00 AM',
     same: 'End time must be after start time',
@@ -44,30 +32,16 @@
 
   /** "09:00" or "9:05:30" -> minutes after midnight; NaN if not a time. */
   function parseTime(value) {
-    var m = /^(\d{1,2}):(\d{2})(?::\d{2}(?:\.\d+)?)?$/.exec(text(value));
-    if (!m || +m[1] > 23 || +m[2] > 59) {
-      return NaN;
-    }
-    return +m[1] * 60 + +m[2];
+    var m = /^(\d{1,2}):(\d\d)(?::\d\d)?$/.exec(text(value));
+    return m && +m[1] < 24 && +m[2] < 60 ? m[1] * 60 + +m[2] : NaN;
   }
 
-  /** Break -> whole minutes: "30", "0:30", "45m", "45 min", "1h", "1h 30m". Empty is 0, anything else NaN. */
+  /** Break -> whole minutes: "30", "0:30", "45m", "45 min". Empty is 0, anything else NaN. */
   function parseBreak(value) {
     var t = text(value).toLowerCase();
-    var n = NaN;
-    var m;
-    if (typeof value === 'number') {
-      n = Math.floor(value) === value ? value : NaN;
-    } else if (t === '') {
-      n = 0;
-    } else if (/^\d+$/.test(t)) {
-      n = +t;
-    } else if ((m = /^(\d+):([0-5]\d)$/.exec(t))) {
-      n = +m[1] * 60 + +m[2];
-    } else if ((m = /^(?:(\d+)\s*h(?:rs?|ours?)?)?\s*(?:(\d+)\s*m(?:in(?:ute)?s?)?)?$/.exec(t)) && (m[1] || m[2])) {
-      n = (+m[1] || 0) * 60 + (+m[2] || 0);
-    }
-    return n >= 0 && n <= DAY ? n : NaN;
+    var m = /^(\d+)(?::([0-5]\d)|\s*m(?:in(?:ute)?s?)?)?$/.exec(t);
+    var n = typeof value === 'number' ? value : t === '' ? 0 : m ? (m[2] ? m[1] * 60 + +m[2] : +m[1]) : NaN;
+    return n >= 0 && n <= DAY && Math.floor(n) === n ? n : NaN;
   }
 
   /** Hourly rate: "20", "20.50", "$20", "$1,250". Empty is null, anything else NaN. */
@@ -89,11 +63,10 @@
   }
 
   function computeShift(shift, deduct, rounding) {
-    var s = { minutes: 0, rawMinutes: 0, start: null, error: null, field: null };
+    var s = { minutes: 0, rawMinutes: 0, error: null, field: null };
     function fail(message, field) {
-      s.minutes = 0;
       s.error = message;
-      s.field = field;
+      s.field = field; // The input to show the message under: 'in', 'out' or 'breakMin'.
       return s;
     }
 
@@ -106,29 +79,16 @@
     if (isNaN(start) || isNaN(end)) {
       return fail(MSG.time, isNaN(start) ? 'in' : 'out');
     }
-    if (end === start) {
-      return fail(MSG.same, 'out');
+    if (end === start || (end < start && shift.nextDay !== true)) {
+      return fail(end === start ? MSG.same : MSG.before, 'out');
     }
-    if (shift.nextDay === true) {
-      end += DAY;
-    } else if (end < start) {
-      return fail(MSG.before, 'out');
-    }
-    s.start = start;
-    s.rawMinutes = end - start;
+    s.rawMinutes = end - start + (shift.nextDay === true ? DAY : 0);
 
-    var net = s.rawMinutes;
-    if (deduct) {
-      var brk = parseBreak(shift.breakMin);
-      if (isNaN(brk)) {
-        return fail(MSG.breakText, 'break');
-      }
-      if (brk > net) {
-        return fail(MSG.breakLong, 'break');
-      }
-      net -= brk;
+    var brk = deduct ? parseBreak(shift.breakMin) : 0;
+    if (isNaN(brk) || brk > s.rawMinutes) {
+      return fail(isNaN(brk) ? MSG.breakText : MSG.breakLong, 'breakMin');
     }
-    s.minutes = roundMinutes(net, rounding);
+    s.minutes = roundMinutes(s.rawMinutes - brk, rounding);
     return s;
   }
 
@@ -139,31 +99,19 @@
     var rounding = Number(input.rounding);
     var rate = parseRate(input.rate);
     var deduct = input.deductBreaks !== false;
-    var days = Array.isArray(input.days) ? input.days : [];
-
-    mult = mult >= 1 && mult <= 3 ? mult : 1.5;
+    var r = {
+      days: [], totalMinutes: 0, regularMinutes: 0, overtimeMinutes: 0, doubleMinutes: 0, daysWorked: 0,
+      otRule: rule, otMultiplier: mult >= 1 && mult <= 3 ? mult : 1.5, rate: rate > 0 ? rate : null,
+      pay: null, warnings: [], hasErrors: false
+    };
     rounding = rounding >= 1 && rounding <= 60 && Math.floor(rounding) === rounding ? rounding : 0;
 
-    var result = {
-      days: [],
-      totalMinutes: 0,
-      regularMinutes: 0,
-      overtimeMinutes: 0,
-      doubleMinutes: 0,
-      daysWorked: 0,
-      otRule: rule,
-      otMultiplier: mult,
-      rate: rate > 0 ? rate : null,
-      pay: null,
-      warnings: [],
-      hasErrors: false
-    };
-    var spans = [];
-
-    days.forEach(function (day, d) {
+    (Array.isArray(input.days) ? input.days : []).forEach(function (day, d) {
       day = day || {};
       var name = text(day.name);
-      var full = FULL_DAY[name] || name || 'Day ' + (d + 1);
+      var full = DAYS.filter(function (n) {
+        return n.slice(0, 3) === name;
+      })[0] || name || 'Day ' + (d + 1);
       var row = { name: name, minutes: 0, shifts: [], error: null };
       var long = false;
 
@@ -171,69 +119,50 @@
         var s = computeShift(shift, deduct, rounding);
         row.shifts.push(s);
         row.minutes += s.minutes;
-        if (s.error) {
-          row.error = row.error || s.error;
-          result.hasErrors = true;
-        } else if (s.rawMinutes) {
-          long = long || s.rawMinutes > LONG_SHIFT;
-          spans.push({ day: full, start: d * DAY + s.start, end: d * DAY + s.start + s.rawMinutes });
-        }
+        row.error = row.error || s.error;
+        long = long || (!s.error && s.rawMinutes > 960);
       });
       if (long) {
-        result.warnings.push(full + ' has a shift over 16 hours. Check the times.');
+        r.warnings.push(full + ' has a shift over 16 hours. Check the times.');
       }
 
       var m = row.minutes;
-      result.totalMinutes += m;
-      result.daysWorked += m > 0 ? 1 : 0;
+      r.hasErrors = r.hasErrors || !!row.error;
+      r.totalMinutes += m;
+      r.daysWorked += m > 0 ? 1 : 0;
       if (rule === 'daily' || rule === 'california') {
         var reg = Math.min(m, DAY_LIMIT);
         var dbl = rule === 'california' ? Math.max(m - DOUBLE_LIMIT, 0) : 0;
-        result.regularMinutes += reg;
-        result.overtimeMinutes += m - reg - dbl;
-        result.doubleMinutes += dbl;
+        r.regularMinutes += reg;
+        r.overtimeMinutes += m - reg - dbl;
+        r.doubleMinutes += dbl;
       }
-      result.days.push(row);
+      r.days.push(row);
     });
 
-    // Overlapping shifts would count the same time twice, including a night shift running into the next day.
-    spans.sort(function (a, b) {
-      return a.start - b.start;
-    });
-    var lastEnd = -1;
-    spans.forEach(function (span) {
-      var warning = span.day + ' has shifts that overlap. Check the times.';
-      if (span.start < lastEnd && result.warnings.indexOf(warning) === -1) {
-        result.warnings.push(warning);
-      }
-      lastEnd = Math.max(lastEnd, span.end);
-    });
-
-    var total = result.totalMinutes;
     if (rule === 'none') {
-      result.regularMinutes = total;
+      r.regularMinutes = r.totalMinutes;
     } else if (rule === 'weekly') {
-      result.regularMinutes = Math.min(total, WEEK_LIMIT);
-      result.overtimeMinutes = total - result.regularMinutes;
-    } else if (rule === 'california' && result.regularMinutes > WEEK_LIMIT) {
+      r.regularMinutes = Math.min(r.totalMinutes, WEEK_LIMIT);
+      r.overtimeMinutes = r.totalMinutes - r.regularMinutes;
+    } else if (rule === 'california' && r.regularMinutes > WEEK_LIMIT) {
       // Weekly overtime only on hours not already paid as daily overtime.
-      result.overtimeMinutes += result.regularMinutes - WEEK_LIMIT;
-      result.regularMinutes = WEEK_LIMIT;
+      r.overtimeMinutes += r.regularMinutes - WEEK_LIMIT;
+      r.regularMinutes = WEEK_LIMIT;
     }
 
-    if (result.rate) {
-      var pay = {
-        regular: cents(result.regularMinutes * rate / 60),
-        overtime: cents(result.overtimeMinutes * rate * mult / 60),
-        double: cents(result.doubleMinutes * rate * 2 / 60)
+    if (r.rate) {
+      r.pay = {
+        regular: cents(r.regularMinutes * rate / 60),
+        overtime: cents(r.overtimeMinutes * rate * r.otMultiplier / 60),
+        double: cents(r.doubleMinutes * rate * 2 / 60)
       };
-      pay.gross = cents(pay.regular + pay.overtime + pay.double);
-      result.pay = pay;
+      r.pay.gross = cents(r.pay.regular + r.pay.overtime + r.pay.double);
     }
-    return result;
+    return r;
   }
 
-  /* ---------- Formatting (US) ---------- */
+  /* ---------- US formats ---------- */
 
   function fixed2(n) {
     var parts = cents(n).toFixed(2).split('.');
@@ -257,29 +186,50 @@
     return '$' + fixed2(n);
   }
 
+  function pad2(n) {
+    return ('0' + n).slice(-2);
+  }
+
   /** "15:30" -> "3:30 PM"; "" if not a time. */
   function formatTime(value) {
     var t = parseTime(value);
-    if (isNaN(t)) {
-      return '';
-    }
     var h = Math.floor(t / 60);
-    var m = t % 60;
-    return ((h + 11) % 12 + 1) + ':' + (m < 10 ? '0' : '') + m + (h < 12 ? ' AM' : ' PM');
+    return isNaN(t) ? '' : ((h + 11) % 12 + 1) + ':' + pad2(t % 60) + (h < 12 ? ' AM' : ' PM');
+  }
+
+  /* ---------- Share links: one day <-> "0900-1700-30.1800-2200" ---------- */
+
+  /** Shifts [{ in, out, breakMin }] -> URL value; shifts with no times are left out. */
+  function encodeDay(shifts) {
+    return (shifts || []).map(function (s) {
+      var times = [s['in'], s.out].map(function (value) {
+        var t = parseTime(value);
+        return isNaN(t) ? '' : pad2(Math.floor(t / 60)) + pad2(t % 60);
+      });
+      var brk = parseBreak(s.breakMin);
+      return times[0] || times[1] ? times.join('-') + (brk > 0 ? '-' + brk : '') : '';
+    }).filter(Boolean).join('.');
+  }
+
+  /** URL value -> up to 2 shifts [{ in, out, breakMin }]; invalid parts become empty. */
+  function decodeDay(value) {
+    return text(value).split('.').slice(0, 2).map(function (part) {
+      var p = part.split('-');
+      var times = [p[0], p[1]].map(function (t) {
+        t = /^\d{4}$/.test(t) ? t.slice(0, 2) + ':' + t.slice(2) : '';
+        return isNaN(parseTime(t)) ? '' : t;
+      });
+      var brk = parseBreak(p[2] || '');
+      return { 'in': times[0], out: times[1], breakMin: brk > 0 ? String(brk) : '' };
+    }).filter(function (s) {
+      return s['in'] || s.out;
+    });
   }
 
   var api = {
-    compute: compute,
-    parseTime: parseTime,
-    parseBreak: parseBreak,
-    parseRate: parseRate,
-    roundMinutes: roundMinutes,
-    formatHours: formatHours,
-    formatHM: formatHM,
-    formatMoney: formatMoney,
-    formatTime: formatTime,
-    rules: RULES,
-    messages: MSG
+    compute: compute, parseTime: parseTime, parseBreak: parseBreak, parseRate: parseRate, roundMinutes: roundMinutes,
+    formatHours: formatHours, formatHM: formatHM, formatMoney: formatMoney, formatTime: formatTime,
+    encodeDay: encodeDay, decodeDay: decodeDay, rules: RULES, days: DAYS, messages: MSG
   };
 
   if (typeof module === 'object' && module && module.exports) {

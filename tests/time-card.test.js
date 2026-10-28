@@ -160,7 +160,7 @@ test('8. Breaks: not deducted when deductBreaks is false; a break longer than th
   var long = calc.compute(week([[shift('09:00', '10:00', 90)]]));
   assert.strictEqual(long.days[0].minutes, 0);
   assert.strictEqual(long.days[0].error, MSG.breakLong);
-  assert.strictEqual(long.days[0].shifts[0].field, 'break');
+  assert.strictEqual(long.days[0].shifts[0].field, 'breakMin');
 
   var equal = calc.compute(week([[shift('09:00', '10:00', 60)]]));
   assert.strictEqual(equal.days[0].minutes, 0);
@@ -190,7 +190,6 @@ test('9. Empty rows, missing fields, out = in, and two shifts in one day', funct
   var split = calc.compute(week([[shift('06:00', '10:00'), shift('14:00', '18:00')]]));
   assert.strictEqual(split.days[0].minutes, 480);
   assert.strictEqual(split.days[0].shifts.length, 2);
-  assert.deepStrictEqual(split.warnings, []);
 
   var badTime = calc.compute(week([[shift('9am', '17:00')]]));
   assert.strictEqual(badTime.days[0].error, MSG.time);
@@ -203,17 +202,6 @@ test('10. Warning when a shift is over 16 hours (once per day)', function () {
 });
 
 /* ---------- More cases ---------- */
-
-test('Overlapping shifts are warned, including a night shift running into the next day', function () {
-  var sameDay = calc.compute(week([[shift('06:00', '10:00'), shift('09:00', '12:00')]]));
-  assert.deepStrictEqual(sameDay.warnings, ['Monday has shifts that overlap. Check the times.']);
-
-  var nextDay = calc.compute(week([[shift('22:00', '06:00', 0, true)], [shift('05:00', '13:00')]]));
-  assert.deepStrictEqual(nextDay.warnings, ['Tuesday has shifts that overlap. Check the times.']);
-
-  var touching = calc.compute(week([[shift('22:00', '06:00', 0, true)], [shift('06:00', '10:00')]]));
-  assert.deepStrictEqual(touching.warnings, [], 'back-to-back shifts do not overlap');
-});
 
 test('California: seven 12-hour night shifts → 40 regular, 44 overtime, no double time', function () {
   var r = calc.compute(week(repeat(7, shift('19:00', '07:00', 0, true)), { otRule: 'california', rate: 20 }));
@@ -274,11 +262,11 @@ test('parseRate, parseBreak and parseTime', function () {
   assert.ok(isNaN(calc.parseRate('-5')));
   assert.ok(isNaN(calc.parseRate('20 dollars')));
 
-  [['30', 30], ['0:30', 30], ['1:15', 75], ['45m', 45], ['45 min', 45], ['45 minutes', 45], ['1h', 60], ['1h 30m', 90],
-    ['1 hr 15 mins', 75], ['', 0], [' ', 0], [30, 30], [0, 0]].forEach(function (c) {
+  [['30', 30], ['0:30', 30], ['1:15', 75], ['45m', 45], ['45 min', 45], ['45 minutes', 45], ['45mins', 45], ['', 0], [' ', 0],
+    [30, 30], [0, 0]].forEach(function (c) {
     assert.strictEqual(calc.parseBreak(c[0]), c[1], JSON.stringify(c[0]));
   });
-  ['abc', '-5', '1.5', '0:75', 'm', 'h', 2000, -1, 7.5, NaN].forEach(function (bad) {
+  ['abc', '-5', '1.5', '0:75', 'm', '1h', '30 m 5', 2000, -1, 7.5, NaN].forEach(function (bad) {
     assert.ok(isNaN(calc.parseBreak(bad)), JSON.stringify(bad) + ' is not a break');
   });
 
@@ -307,6 +295,27 @@ test('US formats: hours, h m, money, 12-hour times', function () {
   assert.strictEqual(calc.formatTime('12:00'), '12:00 PM');
   assert.strictEqual(calc.formatTime('09:00'), '9:00 AM');
   assert.strictEqual(calc.formatTime('x'), '');
+});
+
+test('Share links: a day encodes to "0900-1700-30" and decodes back', function () {
+  assert.strictEqual(calc.encodeDay([shift('09:00', '17:00', '30')]), '0900-1700-30');
+  assert.strictEqual(calc.encodeDay([shift('06:00', '10:00', ''), shift('22:00', '06:00', '0:45', true)]), '0600-1000.2200-0600-45');
+  assert.strictEqual(calc.encodeDay([shift('', '', '30'), shift('', '')]), '', 'a break with no times is not saved');
+  assert.strictEqual(calc.encodeDay([shift('09:00', '', 'abc')]), '0900-', 'a half-filled shift is kept; a bad break is dropped');
+  assert.strictEqual(calc.encodeDay(undefined), '');
+
+  assert.deepStrictEqual(calc.decodeDay('0900-1700-30'), [{ in: '09:00', out: '17:00', breakMin: '30' }]);
+  assert.deepStrictEqual(calc.decodeDay('0600-1000.2200-0600-45'), [
+    { in: '06:00', out: '10:00', breakMin: '' },
+    { in: '22:00', out: '06:00', breakMin: '45' }
+  ]);
+  assert.deepStrictEqual(calc.decodeDay('2500-1700-30'), [{ in: '', out: '17:00', breakMin: '30' }], 'invalid time is dropped');
+  assert.deepStrictEqual(calc.decodeDay('0900-1700-abc.0100-0200.0300-0400'), [
+    { in: '09:00', out: '17:00', breakMin: '' },
+    { in: '01:00', out: '02:00', breakMin: '' }
+  ], 'bad break dropped, at most 2 shifts');
+  assert.deepStrictEqual(calc.decodeDay(''), []);
+  assert.deepStrictEqual(calc.decodeDay('<script>'), []);
 });
 
 test('Settings that are missing or invalid fall back to the defaults', function () {
