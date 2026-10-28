@@ -37,6 +37,8 @@ require_once OC_TOOLS_DIR . 'tools/time-card/time-card.php';
  * To add a tool: create tools/<folder>/ with its scripts and add one entry here.
  *
  * Optional keys:
+ *   description One or two sentences for search engines; the shortcode then prints a
+ *              SoftwareApplication JSON-LD block once per page.
  *   rates      true if the tool needs window.OCToolData (the rates.json data).
  *   render     Function( $uid, $options ) that returns the tool's HTML, printed inside the
  *              container. Without it the container shows "Loading…" until the script builds the tool.
@@ -57,14 +59,15 @@ function oc_tools_registry() {
 			'rates'   => true,
 		),
 		'time-card' => array(
-			'title'      => 'Time Card Calculator',
-			'folder'     => 'time-card',
-			'scripts'    => array( 'time-card-calc.js', 'app.js' ),
-			'render'     => 'oc_tools_time_card_render',
-			'options'    => 'oc_tools_time_card_options',
-			'min_height' => array( // Measured: 2198px at 599px wide, 1256px at 1280px (tests/preview-time-card.html).
-				'phone'   => 2100,
-				'desktop' => 1200,
+			'title'       => 'Time Card Calculator',
+			'description' => 'Add up your weekly work hours with breaks, night shifts and overtime (weekly, daily or California rules), see your gross pay, then print or download your time card. Free, no sign-up.',
+			'folder'      => 'time-card',
+			'scripts'     => array( 'time-card-calc.js', 'app.js' ),
+			'render'      => 'oc_tools_time_card_render',
+			'options'     => 'oc_tools_time_card_options',
+			'min_height'  => array( // Measured: 2319px at 599px wide, 1354px at 1280px (tests/preview-time-card.html).
+				'phone'   => 2250,
+				'desktop' => 1300,
 			),
 		),
 	);
@@ -216,19 +219,96 @@ function oc_tools_shortcode( $atts ) {
 	}
 
 	if ( isset( $tool['render'] ) && is_callable( $tool['render'] ) ) {
-		// The render function escapes everything it prints.
-		return '<div class="oc-app"' . $attributes . '>' . call_user_func( $tool['render'], $uid, $options ) . '</div>';
+		$inner = call_user_func( $tool['render'], $uid, $options ); // The render function escapes everything it prints.
+	} else {
+		$inner = sprintf(
+			'<p class="oc-app-loading">%1$s</p><noscript><p class="oc-app-error">%2$s</p></noscript>',
+			/* translators: %s: tool title. */
+			esc_html( sprintf( __( 'Loading %s…', 'orbitcorner-tools' ), $tool['title'] ) ),
+			esc_html__( 'This calculator needs JavaScript turned on in your browser.', 'orbitcorner-tools' )
+		);
 	}
 
-	return sprintf(
-		'<div class="oc-app"%1$s><p class="oc-app-loading">%2$s</p><noscript><p class="oc-app-error">%3$s</p></noscript></div>',
-		$attributes,
-		/* translators: %s: tool title. */
-		esc_html( sprintf( __( 'Loading %s…', 'orbitcorner-tools' ), $tool['title'] ) ),
-		esc_html__( 'This calculator needs JavaScript turned on in your browser.', 'orbitcorner-tools' )
-	);
+	return '<div class="oc-app"' . $attributes . '>' . $inner . oc_tools_related_html( $name ) . '</div>' . oc_tools_schema( $name, $tool );
 }
 add_shortcode( 'orbit_tool', 'oc_tools_shortcode' );
+
+/*
+ * -------------------------------------------------------------------------
+ * Related tools and structured data
+ * -------------------------------------------------------------------------
+ */
+
+/**
+ * Links shown under each tool. Paths are relative to the site's home URL.
+ * Add an entry here when a tool's page goes live, e.g. the Hours Calculator.
+ *
+ * @return array Tool name => list of array( 'title', 'path', 'text' ).
+ */
+function oc_tools_related_map() {
+	return array(
+		'time-card' => array(
+			array(
+				'title' => 'Freelancer Take-Home Calculator',
+				'path'  => '/tools/freelancer-take-home-calculator/',
+				'text'  => 'See what reaches your bank after platform fees, exchange rates and tax.',
+			),
+		),
+	);
+}
+
+/**
+ * The "Related tools" list for a tool, or '' if it has none.
+ *
+ * @param string $name Tool name (registry key).
+ * @return string
+ */
+function oc_tools_related_html( $name ) {
+	$map = oc_tools_related_map();
+	if ( empty( $map[ $name ] ) ) {
+		return '';
+	}
+	$items = '';
+	foreach ( $map[ $name ] as $link ) {
+		$items .= '<li><a href="' . esc_url( home_url( $link['path'] ) ) . '">' . esc_html( $link['title'] ) . '</a> ' . esc_html( $link['text'] ) . '</li>';
+	}
+	return '<nav class="oc-related" aria-label="Related tools"><h2 class="oc-related-title">Related tools</h2><ul>' . $items . '</ul></nav>';
+}
+
+/**
+ * One SoftwareApplication JSON-LD block per tool per page, for tools with a 'description'.
+ *
+ * @param string $name Tool name (registry key).
+ * @param array  $tool Registry entry.
+ * @return string
+ */
+function oc_tools_schema( $name, $tool ) {
+	static $printed = array();
+	if ( empty( $tool['description'] ) || isset( $printed[ $name ] ) ) {
+		return '';
+	}
+	$printed[ $name ] = true;
+
+	$data = array(
+		'@context'            => 'https://schema.org',
+		'@type'               => 'SoftwareApplication',
+		'name'                => $tool['title'],
+		'description'         => $tool['description'],
+		'applicationCategory' => 'UtilitiesApplication',
+		'operatingSystem'     => 'Web',
+		'offers'              => array(
+			'@type'         => 'Offer',
+			'price'         => '0',
+			'priceCurrency' => 'USD',
+		),
+	);
+	$url = get_permalink();
+	if ( $url ) {
+		$data['url'] = $url;
+	}
+	// JSON_HEX_TAG keeps the text from ever closing the <script> tag.
+	return '<script type="application/ld+json">' . wp_json_encode( $data, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) . '</script>';
+}
 
 /*
  * -------------------------------------------------------------------------

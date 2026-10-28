@@ -46,8 +46,11 @@ function shortcode_atts( $pairs, $atts ) {
 function selected( $selected, $current ) {
 	echo (string) $selected === (string) $current ? " selected='selected'" : '';
 }
-function home_url() {
-	return 'https://orbitcorner.com';
+function home_url( $path = '' ) {
+	return 'https://orbitcorner.com' . $path;
+}
+function get_permalink() {
+	return 'https://orbitcorner.com/tools/time-card-calculator/';
 }
 function wp_parse_url( $url, $component = -1 ) {
 	return parse_url( $url, $component ); // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url

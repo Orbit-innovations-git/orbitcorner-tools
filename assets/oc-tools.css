@@ -705,6 +705,56 @@
 }
 
 /* ------------------------------------------------------------------
+ * Related tools (any tool listed in oc_tools_related_map())
+ * ------------------------------------------------------------------ */
+
+.oc-app .oc-related {
+  margin-top: 24px;
+  font-size: 15px;
+}
+
+.oc-app h2.oc-related-title {
+  margin: 0 0 4px;
+  padding: 0;
+  color: var(--oc-heading);
+  font-family: var(--oc-heading-font);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.oc-app .oc-related ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.oc-app .oc-related li {
+  margin: 0;
+}
+
+.oc-app .oc-related a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-right: 4px;
+  color: var(--oc-primary);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.oc-app .oc-related a:hover {
+  color: var(--oc-primary-hover);
+}
+
+@media print {
+  .oc-app .oc-related {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------
  * Time Card Calculator. Phone: tool under 600px (day cards); desktop: 960px+ (two columns).
  * ------------------------------------------------------------------ */
 
