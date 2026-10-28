@@ -239,11 +239,11 @@ function oc_tools_time_card_render( $uid, $options ) {
 			<legend class="oc-label">For printing (optional)</legend>
 			<div class="oc-tc-print-fields">
 				<div>
-					<label class="oc-tc-label" for="<?php echo esc_attr( $uid . '-name' ); ?>">Name</label>
+					<label class="oc-label" for="<?php echo esc_attr( $uid . '-name' ); ?>">Name</label>
 					<input class="oc-tc-in" type="text" id="<?php echo esc_attr( $uid . '-name' ); ?>" data-tc="name" autocomplete="name">
 				</div>
 				<div>
-					<label class="oc-tc-label" for="<?php echo esc_attr( $uid . '-week' ); ?>">Week of</label>
+					<label class="oc-label" for="<?php echo esc_attr( $uid . '-week' ); ?>">Week of</label>
 					<input class="oc-tc-in" type="date" id="<?php echo esc_attr( $uid . '-week' ); ?>" data-tc="wk">
 				</div>
 			</div>
@@ -341,7 +341,7 @@ function oc_tools_time_card_render( $uid, $options ) {
 			<?php endforeach; ?>
 			<p class="oc-copy-status" role="status" data-tc="status"></p>
 			<div class="oc-copy-fallback" data-tc="fallback" hidden>
-				<label class="oc-tc-label" for="<?php echo esc_attr( $uid . '-copy' ); ?>">Copy this:</label>
+				<label class="oc-label" for="<?php echo esc_attr( $uid . '-copy' ); ?>">Copy this:</label>
 				<textarea class="oc-tc-in" id="<?php echo esc_attr( $uid . '-copy' ); ?>" rows="4" readonly data-tc="copy"></textarea>
 			</div>
 		</div>

@@ -708,7 +708,7 @@
  * Time Card Calculator. Phone: tool under 600px (day cards); desktop: 960px+ (two columns).
  * ------------------------------------------------------------------ */
 
-/* Height from the registry's min_height, so the page doesn't jump while loading. */
+/* The registry's min_height: no jump while loading. */
 .oc-app[data-oc-tool] {
   min-height: var(--oc-mh-sm, 0);
 }
@@ -821,6 +821,7 @@
 
 .oc-app .oc-tc-err::before {
   content: "!";
+  content: "!" / ""; /* Not read out by screen readers. */
   flex: none;
   width: 18px;
   height: 18px;
@@ -831,14 +832,6 @@
   font-weight: 800;
   line-height: 18px;
   text-align: center;
-}
-
-.oc-app .oc-tc-label {
-  display: block;
-  margin-bottom: 6px;
-  color: var(--oc-heading);
-  font-size: 14px;
-  font-weight: 600;
 }
 
 .oc-app .oc-tc-check {
@@ -930,12 +923,12 @@
   flex: 0 1 120px;
 }
 
-.oc-app .oc-tc-field-check {
-  flex: 0 0 auto;
-  padding-top: 30px; /* Lines up with the boxes next to it. */
-}
-
 @container oc-app (min-width: 600px) {
+  .oc-app .oc-tc-field-check {
+    flex: none;
+    padding-top: 30px; /* Lines up with the boxes next to it. */
+  }
+
   @supports selector(::details-content) {
     .oc-app details.oc-tc-set > summary {
       display: none;
@@ -946,7 +939,7 @@
     }
   }
 
-  .oc-app .oc-tc-mini {
+  .oc-app ul.oc-tc-mini {
     display: none;
   }
 }
@@ -1272,12 +1265,13 @@
   }
 
   .oc-app .oc-tc {
-    display: flex;
-    flex-direction: column;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); /* Totals beside the table. */
+    gap: 0 24px;
   }
 
   .oc-app .oc-tc-set {
     order: 1; /* The settings line goes last. */
+    grid-column: 1 / -1;
   }
 
   .oc-app .oc-card {
@@ -1323,9 +1317,9 @@
     font-size: 13px;
   }
 
-  .oc-app .oc-tc-result {
-    margin-top: 16px;
-    break-inside: avoid;
+  .oc-app .oc-tc-next {
+    min-height: 0;
+    font-size: 11px;
   }
 
   .oc-app .oc-tc-result .oc-big {
