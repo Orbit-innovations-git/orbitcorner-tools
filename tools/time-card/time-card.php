@@ -57,7 +57,7 @@ function oc_tools_time_card_default_week() {
  * Minutes worked on one day of the default week.
  *
  * Only needs to handle the default week: no night shifts, no overtime under any rule
- * (7.5 h a day, 37.5 h a week), and 450 minutes is a whole number of 5-, 6- and
+ * (7.5 h a day, 37.5 h a week, no seventh day), and 9:00 and 17:00 are whole 5-, 6- and
  * 15-minute steps, so rounding changes nothing. time-card-calc.js does the real math.
  *
  * @param array $shifts The day's shifts.
@@ -221,12 +221,13 @@ function oc_tools_time_card_render( $uid, $options ) {
 				<p class="oc-tc-err" id="<?php echo esc_attr( $uid . '-otx-err' ); ?>" hidden></p>
 			</div>
 			<div class="oc-tc-field">
-				<label class="oc-label" for="<?php echo esc_attr( $uid . '-rd' ); ?>">Round each shift to</label>
-				<div class="oc-tc-select"><select id="<?php echo esc_attr( $uid . '-rd' ); ?>" data-tc="rd">
+				<label class="oc-label" for="<?php echo esc_attr( $uid . '-rd' ); ?>">Round clock times to</label>
+				<div class="oc-tc-select"><select id="<?php echo esc_attr( $uid . '-rd' ); ?>" data-tc="rd" aria-describedby="<?php echo esc_attr( $uid . '-rd-hint' ); ?>">
 					<?php foreach ( $rd_labels as $value => $label ) : ?>
 						<option value="<?php echo esc_attr( $value ); ?>"<?php selected( $rounding, $value ); ?>><?php echo esc_html( $label ); ?></option>
 					<?php endforeach; ?>
 				</select></div>
+				<p class="oc-hint" id="<?php echo esc_attr( $uid . '-rd-hint' ); ?>">Rounds each clock-in and clock-out to the nearest 5, 6 or 15 minutes.</p>
 			</div>
 			<div class="oc-tc-field oc-tc-field-check">
 				<label class="oc-tc-check"><input type="checkbox" data-tc="br" checked> Deduct breaks</label>

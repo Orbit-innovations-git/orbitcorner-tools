@@ -69,9 +69,9 @@ A page made for California workers can start with California overtime this way. 
 
 For each shift:
 
-1. **Shift length** = End − Start. If "Ends the next day" is ticked, 24 hours are added (10:00 PM–6:00 AM = 8 h).
-2. **Break**: if "Deduct breaks" is on, the break is taken off. A break longer than the shift is an error.
-3. **Rounding** (optional): the shift's total, after the break, is rounded to the nearest 5, 6 or 15 minutes. Exactly half rounds up (15-minute rounding: 7 min → 0, 8 min → 15).
+1. **Rounding** (optional): each clock-in and clock-out time is rounded to the nearest 5, 6 or 15 minutes. Exactly half rounds up. With 15 minutes, 9:07 → 9:00 and 9:08 → 9:15, so 9:08 AM–5:07 PM counts as 9:15 AM–5:00 PM = 7.75 h, and 8:53 AM–5:08 PM as 9:00 AM–5:15 PM = 8.25 h.
+2. **Shift length** = End − Start, after rounding. If "Ends the next day" is ticked, 24 hours are added (10:00 PM–6:00 AM = 8 h).
+3. **Break**: if "Deduct breaks" is on, the break is taken off. A break longer than the shift as entered is an error. If rounding makes the shift shorter than the break, the shift counts as 0.
 
 A day's hours are the sum of its shifts. Then the overtime rule splits the week:
 
@@ -79,22 +79,26 @@ A day's hours are the sum of its shifts. Then the overtime rule splits the week:
 |---|---|---|---|
 | **Weekly** (US federal) | up to 40 h a week | over 40 h a week | none |
 | **Daily** | up to 8 h a day | over 8 h a day | none |
-| **California** | up to 8 h a day, and up to 40 h a week | 8–12 h a day, plus regular hours over 40 a week | over 12 h a day |
+| **California**, days 1–6 | up to 8 h a day, and up to 40 h a week | 8–12 h a day, plus regular hours over 40 a week | over 12 h a day |
+| **California**, 7th day | none | the first 8 h | over 8 h |
 | **No overtime** | all hours | none | none |
 
-In California, hours already paid as daily overtime don't count again toward the weekly 40, so nothing is paid twice.
+**California seventh day**: the 7th-day row applies only when all seven days, Monday to Sunday, have hours. Sunday is then the seventh day. A day whose only shift is invalid or adds up to 0 doesn't count as worked. Seven 8-hour days = 40 regular + 16 overtime (Sunday's 8, plus 8 of the 48 regular hours over the weekly 40). With a 10-hour Sunday, that day gives 8 overtime + 2 double time. With six days or fewer, every day uses the days 1–6 row.
+
+In California, hours already paid as daily or seventh-day overtime don't count again toward the weekly 40, so nothing is paid twice.
 
 **Pay** (only with a rate): regular hours × rate, overtime hours × rate × overtime pay, double-time hours × rate × 2. Each line is rounded to the cent and gross pay is their sum. Hours show with 2 decimals (minutes ÷ 60).
 
 **Warnings**: a shift over 16 hours shows "Monday has a shift over 16 hours. Check the times."
 
-**Not included**: taxes and deductions, meal and rest break penalties, California's seventh-consecutive-day rule, state rules other than California, and rounding of clock-in and clock-out times (the tool rounds each shift's total). The result card says results are estimates.
+**Not included**: taxes and deductions, meal and rest break penalties, state rules other than California, workweeks that don't start on Monday, and rounding of break times (breaks are entered in minutes). The result card says results are estimates.
 
 **Sources**
 
 - US federal overtime: Fair Labor Standards Act, 29 U.S.C. § 207(a): at least 1.5 times the regular rate for hours over 40 in a workweek. [US Department of Labor: Overtime Pay](https://www.dol.gov/agencies/whd/overtime)
-- California: Labor Code § 510: 1.5 times for hours over 8 in a day or 40 in a week, 2 times for hours over 12 in a day. [California DIR: Overtime FAQ](https://www.dir.ca.gov/dlse/faq_overtime.htm)
-- Rounding to 5, 6 or 15 minutes: 29 CFR 785.48(b). [eCFR § 785.48](https://www.ecfr.gov/current/title-29/section-785.48)
+- California: Labor Code § 510(a): 1.5 times for hours over 8 in a day, over 40 in a week and the first 8 hours on the seventh day of work in a workweek; 2 times for hours over 12 in a day and over 8 on the seventh day. [California DIR: Overtime FAQ](https://www.dir.ca.gov/dlse/faq_overtime.htm)
+- Seventh day means the seventh day of one workweek, not seven days in a row across two weeks: *Mendoza v. Nordstrom, Inc.* (2017) 2 Cal.5th 1074.
+- Rounding clock-in and clock-out times to the nearest 5 minutes, tenth or quarter of an hour: 29 CFR 785.48(b). [eCFR § 785.48](https://www.ecfr.gov/current/title-29/section-785.48)
 
 ### Share links
 
@@ -141,7 +145,7 @@ OCTimeCardCalc.compute({
 // }
 ```
 
-Times are 24-hour `"HH:MM"` strings, as `<input type="time">` gives them. A shift with an empty start or end is ignored. An invalid shift counts as 0, with `error` set to the message and `field` set to the input it belongs under (`in`, `out` or `breakMin`). The result never contains NaN. The module also has the parsers and US formatters the interface uses (`parseBreak`, `parseRate`, `formatHours`, `formatHM`, `formatMoney`, `formatTime`) and `encodeDay` / `decodeDay` for share links.
+Times are 24-hour `"HH:MM"` strings, as `<input type="time">` gives them. A shift with an empty start or end is ignored. A shift's `rawMinutes` are as entered; its `minutes` are after rounding and the break. An invalid shift counts as 0, with `error` set to the message and `field` set to the input it belongs under (`in`, `out` or `breakMin`). The result never contains NaN. The module also has the parsers and US formatters the interface uses (`parseBreak`, `parseRate`, `formatHours`, `formatHM`, `formatMoney`, `formatTime`) and `encodeDay` / `decodeDay` for share links.
 
 ---
 
@@ -247,7 +251,7 @@ python3 -m http.server 8000
 # then open http://localhost:8000/tests/preview.html
 ```
 
-**Budgets for each tool:** its two scripts together ≤ 25 KB unminified, its CSS ≤ 12 KB, no images (inline SVG icons ≤ 1 KB each), no layout shift on load. The time card is at 24.4 KB of JavaScript (8.0 KB gzipped) and 11.7 KB of CSS.
+**Budgets for each tool:** its two scripts together ≤ 25 KB unminified, its CSS ≤ 12 KB, no images (inline SVG icons ≤ 1 KB each), no layout shift on load. The time card is at 24.6 KB of JavaScript (8.2 KB gzipped) and 11.7 KB of CSS.
 
 ### Build the zip
 

@@ -69,13 +69,14 @@
 				<p class="oc-tc-err" id="oc-app-time-card-1-otx-err" hidden></p>
 			</div>
 			<div class="oc-tc-field">
-				<label class="oc-label" for="oc-app-time-card-1-rd">Round each shift to</label>
-				<div class="oc-tc-select"><select id="oc-app-time-card-1-rd" data-tc="rd">
+				<label class="oc-label" for="oc-app-time-card-1-rd">Round clock times to</label>
+				<div class="oc-tc-select"><select id="oc-app-time-card-1-rd" data-tc="rd" aria-describedby="oc-app-time-card-1-rd-hint">
 											<option value="0" selected='selected'>No rounding</option>
 											<option value="5">5 minutes</option>
 											<option value="6">6 minutes</option>
 											<option value="15">15 minutes</option>
 									</select></div>
+				<p class="oc-hint" id="oc-app-time-card-1-rd-hint">Rounds each clock-in and clock-out to the nearest 5, 6 or 15 minutes.</p>
 			</div>
 			<div class="oc-tc-field oc-tc-field-check">
 				<label class="oc-tc-check"><input type="checkbox" data-tc="br" checked> Deduct breaks</label>

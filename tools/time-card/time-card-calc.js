@@ -40,13 +40,13 @@
   function parseBreak(value) {
     var t = text(value).toLowerCase();
     var m = /^(\d+)(?::([0-5]\d)|\s*m(?:in(?:ute)?s?)?)?$/.exec(t);
-    var n = typeof value === 'number' ? value : t === '' ? 0 : m ? (m[2] ? m[1] * 60 + +m[2] : +m[1]) : NaN;
+    var n = t === '' ? 0 : m ? (m[2] ? m[1] * 60 + +m[2] : +m[1]) : NaN;
     return n >= 0 && n <= DAY && Math.floor(n) === n ? n : NaN;
   }
 
   /** Hourly rate: "20", "20.50", "$20", "$1,250". Empty is null, anything else NaN. */
   function parseRate(value) {
-    var t = typeof value === 'number' ? String(value) : text(value).replace(/[\s,]/g, '').replace(/^\$/, '');
+    var t = text(value).replace(/[\s,]/g, '').replace(/^\$/, '');
     if (t === '') {
       return null;
     }
@@ -55,11 +55,7 @@
 
   /** To the nearest interval; exactly half rounds up. 0 = no rounding. */
   function roundMinutes(minutes, interval) {
-    if (!(interval > 0)) {
-      return minutes;
-    }
-    var rest = minutes % interval;
-    return rest * 2 >= interval ? minutes - rest + interval : minutes - rest;
+    return interval > 0 ? Math.round(minutes / interval) * interval : minutes;
   }
 
   function computeShift(shift, deduct, rounding) {
@@ -82,13 +78,15 @@
     if (end === start || (end < start && shift.nextDay !== true)) {
       return fail(end === start ? MSG.same : MSG.before, 'out');
     }
-    s.rawMinutes = end - start + (shift.nextDay === true ? DAY : 0);
+    var next = shift.nextDay === true ? DAY : 0;
+    s.rawMinutes = end + next - start;
 
     var brk = deduct ? parseBreak(shift.breakMin) : 0;
     if (isNaN(brk) || brk > s.rawMinutes) {
       return fail(isNaN(brk) ? MSG.breakText : MSG.breakLong, 'breakMin');
     }
-    s.minutes = roundMinutes(s.rawMinutes - brk, rounding);
+    // Rounds each clock-in and clock-out (29 CFR 785.48(b)), not the shift's length.
+    s.minutes = Math.max(roundMinutes(end, rounding) + next - roundMinutes(start, rounding) - brk, 0);
     return s;
   }
 
@@ -104,7 +102,7 @@
       otRule: rule, otMultiplier: mult >= 1 && mult <= 3 ? mult : 1.5, rate: rate > 0 ? rate : null,
       pay: null, warnings: [], hasErrors: false
     };
-    rounding = rounding >= 1 && rounding <= 60 && Math.floor(rounding) === rounding ? rounding : 0;
+    rounding = [5, 6, 15].indexOf(rounding) !== -1 ? rounding : 0;
 
     (Array.isArray(input.days) ? input.days : []).forEach(function (day, d) {
       day = day || {};
@@ -131,8 +129,11 @@
       r.totalMinutes += m;
       r.daysWorked += m > 0 ? 1 : 0;
       if (rule === 'daily' || rule === 'california') {
-        var reg = Math.min(m, DAY_LIMIT);
-        var dbl = rule === 'california' ? Math.max(m - DOUBLE_LIMIT, 0) : 0;
+        // California seventh-day rule, Labor Code § 510(a): if all 7 days of the workweek have hours,
+        // day 7's first 8 h are overtime and the rest double time.
+        var seventh = rule === 'california' && d === 6 && r.daysWorked === 7;
+        var reg = seventh ? 0 : Math.min(m, DAY_LIMIT);
+        var dbl = rule === 'california' ? Math.max(m - (seventh ? DAY_LIMIT : DOUBLE_LIMIT), 0) : 0;
         r.regularMinutes += reg;
         r.overtimeMinutes += m - reg - dbl;
         r.doubleMinutes += dbl;
@@ -146,7 +147,7 @@
       r.regularMinutes = Math.min(r.totalMinutes, WEEK_LIMIT);
       r.overtimeMinutes = r.totalMinutes - r.regularMinutes;
     } else if (rule === 'california' && r.regularMinutes > WEEK_LIMIT) {
-      // Weekly overtime only on hours not already paid as daily overtime.
+      // Weekly overtime only on hours not already paid as overtime.
       r.overtimeMinutes += r.regularMinutes - WEEK_LIMIT;
       r.regularMinutes = WEEK_LIMIT;
     }

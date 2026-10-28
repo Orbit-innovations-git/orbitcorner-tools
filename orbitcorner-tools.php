@@ -3,7 +3,7 @@
  * Plugin Name:       OrbitCorner Tools
  * Plugin URI:        https://orbitcorner.com/tools/
  * Description:       Free browser-based tools for OrbitCorner. Add a tool to any page or post with a shortcode, e.g. [orbit_tool name="time-card"].
- * Version:           1.2.0
+ * Version:           1.2.1
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Orbit Innovation
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'OC_TOOLS_VERSION', '1.2.0' );
+define( 'OC_TOOLS_VERSION', '1.2.1' );
 define( 'OC_TOOLS_DIR', plugin_dir_path( __FILE__ ) );
 define( 'OC_TOOLS_URL', plugin_dir_url( __FILE__ ) );
 define( 'OC_TOOLS_OPTION', 'oc_tools_rates' );

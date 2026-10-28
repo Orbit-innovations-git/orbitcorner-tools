@@ -130,13 +130,13 @@ test('6. Rounding: 15 → 7→0, 8→15, 22→15, 23→30; 6 → 3→6, 2→0; 5
   [[7, 15, 0], [8, 15, 15], [22, 15, 15], [23, 15, 30], [3, 6, 6], [2, 6, 0], [2, 5, 0], [3, 5, 5], [7, 0, 7]].forEach(function (c) {
     assert.strictEqual(calc.roundMinutes(c[0], c[1]), c[2], c[0] + ' min at ' + c[1]);
   });
-  // Applied per shift, after the break: 9:00–17:28 less 20 min = 488 → 495 (rounding first would give 510 − 20 = 490).
+  // Applied to each clock-in and clock-out, then the break: 9:00–17:28 → 9:00–17:30 = 510 − 20 = 490.
   var r = calc.compute(week([
     [shift('09:00', '17:07')],
     [shift('09:00', '17:08')],
     [shift('09:00', '17:28', 20)]
   ], { rounding: 15 }));
-  assert.deepStrictEqual(r.days.slice(0, 3).map(function (d) { return d.minutes; }), [480, 495, 495]);
+  assert.deepStrictEqual(r.days.slice(0, 3).map(function (d) { return d.minutes; }), [480, 495, 490]);
   assert.strictEqual(r.days[0].shifts[0].rawMinutes, 487, 'rawMinutes is before breaks and rounding');
 });
 
@@ -201,13 +201,97 @@ test('10. Warning when a shift is over 16 hours (once per day)', function () {
   assert.deepStrictEqual(r.warnings, ['Monday has a shift over 16 hours. Check the times.'], 'exactly 16 h is not warned');
 });
 
+/* ---------- California seventh-day rule ---------- */
+
+test('Seventh day: seven 8-hour days → 40 regular, 16 overtime, 0 double', function () {
+  var r = calc.compute(week(repeat(7, shift('09:00', '17:00')), { otRule: 'california', rate: 20 }));
+  assert.deepStrictEqual(minutes(r), [2400, 960, 0]);
+  assert.deepStrictEqual(r.pay, { regular: 800, overtime: 480, double: 0, gross: 1280 });
+});
+
+test('Seventh day: a 10-hour seventh day gives 8 overtime + 2 double', function () {
+  // Short days 1–6 keep the weekly rule out of it: 24 regular, then Sunday's 8 overtime + 2 double.
+  var short = calc.compute(week(repeat(6, shift('09:00', '13:00')).concat([[shift('08:00', '18:00')]]), { otRule: 'california' }));
+  assert.deepStrictEqual(minutes(short), [1440, 480, 120]);
+
+  var full = calc.compute(week(repeat(6, shift('09:00', '17:00')).concat([[shift('08:00', '18:00')]]), { otRule: 'california' }));
+  assert.deepStrictEqual(minutes(full), [2400, 960, 120], '48 regular → 40 + 8 overtime, plus Sunday 8 + 2');
+
+  var under8 = calc.compute(week(repeat(7, shift('09:00', '13:00')), { otRule: 'california' }));
+  assert.deepStrictEqual(minutes(under8), [1440, 240, 0], 'a 4-hour seventh day is all overtime');
+
+  var long = calc.compute(week(repeat(6, shift('09:00', '13:00')).concat([[shift('06:00', '19:00')]]), { otRule: 'california' }));
+  assert.deepStrictEqual(minutes(long), [1440, 480, 300], 'over 8 on the seventh day is double, not only over 12');
+});
+
+test('Seventh day: not applied with six days, or when a day has no valid hours', function () {
+  var six = calc.compute(week(repeat(6, shift('09:00', '17:00')), { otRule: 'california' }));
+  assert.deepStrictEqual(minutes(six), [2400, 480, 0], 'Monday–Saturday only');
+
+  // Wednesday off, Sunday 10 h: Sunday is an ordinary day (8 regular + 2 overtime).
+  var gap = repeat(6, shift('09:00', '13:00')).concat([[shift('08:00', '18:00')]]);
+  gap[2] = [];
+  assert.deepStrictEqual(minutes(calc.compute(week(gap, { otRule: 'california' }))), [1680, 120, 0]);
+
+  [[shift('9am', '17:00')], [shift('09:00', '10:00', 60)], [{ in: '09:00' }]].forEach(function (wednesday, i) {
+    var perDay = gap.slice();
+    perDay[2] = wednesday;
+    var r = calc.compute(week(perDay, { otRule: 'california' }));
+    assert.deepStrictEqual(minutes(r), [1680, 120, 0], 'Wednesday case ' + i + ' is not a day worked');
+    assert.strictEqual(r.daysWorked, 6);
+  });
+
+  var daily = calc.compute(week(repeat(7, shift('09:00', '17:00')), { otRule: 'daily' }));
+  assert.deepStrictEqual(minutes(daily), [3360, 0, 0], 'only the California rule has a seventh day');
+});
+
+/* ---------- Rounding each clock-in and clock-out ---------- */
+
+test('Rounding 15: 9:07 → 9:00, 9:08 → 9:15; 9:08–17:07 = 7.75 h; 8:53–17:08 = 8.25 h', function () {
+  assert.strictEqual(calc.roundMinutes(calc.parseTime('09:07'), 15), calc.parseTime('09:00'));
+  assert.strictEqual(calc.roundMinutes(calc.parseTime('09:08'), 15), calc.parseTime('09:15'));
+
+  var r = calc.compute(week([[shift('09:08', '17:07')], [shift('08:53', '17:08')]], { rounding: 15 }));
+  assert.strictEqual(r.days[0].minutes, 465, '9:15–17:00');
+  assert.strictEqual(calc.formatHours(r.days[0].minutes), '7.75');
+  assert.strictEqual(r.days[1].minutes, 495, '9:00–17:15');
+  assert.strictEqual(calc.formatHours(r.days[1].minutes), '8.25');
+  assert.strictEqual(r.days[0].shifts[0].rawMinutes, 479);
+});
+
+test('Rounding 5 and 6, night shifts, midnight, and shifts that round to nothing', function () {
+  var six = calc.compute(week([[shift('09:03', '17:02')]], { rounding: 6 }));
+  assert.strictEqual(six.days[0].minutes, 474, '9:06–17:00: exactly half (3 of 6) rounds up');
+  var five = calc.compute(week([[shift('09:02', '17:03')]], { rounding: 5 }));
+  assert.strictEqual(five.days[0].minutes, 485, '9:00–17:05');
+
+  var night = calc.compute(week([[shift('22:53', '06:07', 0, true)], [shift('23:53', '06:00', 0, true)]], { rounding: 15 }));
+  assert.strictEqual(night.days[0].minutes, 420, '23:00–06:00');
+  assert.strictEqual(night.days[1].minutes, 360, 'clock-in rounds up to midnight');
+  var late = calc.compute(week([[shift('22:00', '23:55')]], { rounding: 15 }));
+  assert.strictEqual(late.days[0].minutes, 120, 'clock-out rounds up to midnight');
+
+  var tiny = calc.compute(week([[shift('09:00', '09:05')]], { rounding: 15 }));
+  assert.strictEqual(tiny.days[0].minutes, 0);
+  assert.strictEqual(tiny.hasErrors, false, 'a shift that rounds to nothing is 0, not an error');
+
+  // The break fits the shift as entered (59 min) but not the rounded one (9:15–10:00 = 45 min).
+  var brk = calc.compute(week([[shift('09:08', '10:07', 50)]], { rounding: 15 }));
+  assert.strictEqual(brk.days[0].minutes, 0);
+  assert.strictEqual(brk.days[0].error, null);
+
+  var odd = calc.compute(week([[shift('09:00', '17:00')]], { rounding: 7 }));
+  assert.strictEqual(odd.totalMinutes, 480, 'only 5, 6 and 15 round; 7 would move 9:00 to 8:59');
+});
+
 /* ---------- More cases ---------- */
 
-test('California: seven 12-hour night shifts → 40 regular, 44 overtime, no double time', function () {
+test('California: seven 12-hour night shifts → 40 regular, 40 overtime, 4 double (seventh day)', function () {
+  // Days 1–6: 48 regular + 24 overtime. Day 7: 8 overtime + 4 double. Weekly: 8 of the 48 regular become overtime.
   var r = calc.compute(week(repeat(7, shift('19:00', '07:00', 0, true)), { otRule: 'california', rate: 20 }));
   assert.strictEqual(r.totalMinutes, 84 * 60);
-  assert.deepStrictEqual(minutes(r), [2400, 44 * 60, 0]);
-  assert.deepStrictEqual(r.pay, { regular: 800, overtime: 1320, double: 0, gross: 2120 });
+  assert.deepStrictEqual(minutes(r), [2400, 40 * 60, 4 * 60]);
+  assert.deepStrictEqual(r.pay, { regular: 800, overtime: 1200, double: 160, gross: 2160 });
 });
 
 test('Two shifts on one day, the second across midnight', function () {
