@@ -1,0 +1,122 @@
+{
+  "version": 1,
+  "country": "PK",
+  "currency": "PKR",
+  "market_rate": {
+    "usd_to_pkr": 281.0,
+    "last_checked": "2026-10-28",
+    "source": "Update with the State Bank of Pakistan interbank rate or Google's USD to PKR rate on the day you check.",
+    "source_url": "https://www.sbp.org.pk/"
+  },
+  "tax": {
+    "pseb_rate_pct": 0.25,
+    "non_pseb_rate_pct": 1.0,
+    "last_checked": "2026-10-28",
+    "note": "Final tax on IT/ITES export proceeds received through banking channels (Budget 2026-27). Verify on FBR/PSEB before launch.",
+    "source_url": "https://www.fbr.gov.pk/"
+  },
+  "platforms": {
+    "upwork": {
+      "label": "Upwork",
+      "fee_pct_default": 10,
+      "fee_editable": true,
+      "note": "Upwork charges a variable 0-15% fee per contract, shown before you submit a proposal.",
+      "source_url": "https://support.upwork.com/hc/en-us/articles/211062538"
+    },
+    "fiverr": {
+      "label": "Fiverr",
+      "fee_pct_default": 20,
+      "fee_editable": false,
+      "note": "Fiverr keeps 20% of each order for sellers.",
+      "source_url": "https://www.fiverr.com/"
+    },
+    "direct": {
+      "label": "Direct client",
+      "fee_pct_default": 0,
+      "fee_editable": false,
+      "note": "No platform fee when a client pays you directly.",
+      "source_url": ""
+    }
+  },
+  "routes": [
+    {
+      "id": "upwork_direct_bank",
+      "label": "Upwork → direct to local bank",
+      "platforms": ["upwork"],
+      "flat_fee_usd": 0.99,
+      "fee_pct": 0,
+      "fx_markup_pct": 3.0,
+      "speed": "1-3 days",
+      "note": "Flat $0.99 per withdrawal, but Upwork's banking partner converts at a weaker rate than the market.",
+      "verify": true
+    },
+    {
+      "id": "upwork_payoneer_bank",
+      "label": "Upwork → Payoneer → bank",
+      "platforms": ["upwork"],
+      "flat_fee_usd": 0,
+      "fee_pct": 0,
+      "fx_markup_pct": 2.0,
+      "speed": "1-3 days",
+      "note": "Payoneer converts USD to PKR at about 2% below the market rate when you withdraw to a Pakistani bank.",
+      "verify": true
+    },
+    {
+      "id": "fiverr_payoneer_bank",
+      "label": "Fiverr → Payoneer → bank",
+      "platforms": ["fiverr"],
+      "flat_fee_usd": 1.0,
+      "fee_pct": 0,
+      "fx_markup_pct": 2.0,
+      "speed": "1-3 days",
+      "note": "Fiverr's Payoneer transfer fee plus Payoneer's conversion markup.",
+      "verify": true
+    },
+    {
+      "id": "fiverr_direct_bank",
+      "label": "Fiverr → direct to local bank",
+      "platforms": ["fiverr"],
+      "flat_fee_usd": 3.0,
+      "fee_pct": 0,
+      "fx_markup_pct": 3.0,
+      "speed": "3-5 days",
+      "note": "Fiverr's local bank transfer option for Pakistan.",
+      "verify": true
+    },
+    {
+      "id": "payoneer_jazzcash",
+      "label": "Payoneer → JazzCash",
+      "platforms": ["upwork", "fiverr", "direct"],
+      "flat_fee_usd": 0,
+      "flat_fee_usd_by_platform": { "fiverr": 1.0 },
+      "fee_pct": 2.0,
+      "fee_pct_by_platform": { "direct": 3.0 },
+      "fx_markup_pct": 0.5,
+      "speed": "Minutes",
+      "note": "JazzCash converts close to the market rate, but Payoneer charges about 2% to send to the wallet (plus 1% to receive from a direct client, or Fiverr's $1 transfer fee).",
+      "verify": true
+    },
+    {
+      "id": "direct_payoneer_bank",
+      "label": "Client pays Payoneer → bank",
+      "platforms": ["direct"],
+      "flat_fee_usd": 0,
+      "fee_pct": 1.0,
+      "fx_markup_pct": 2.0,
+      "speed": "1-3 days",
+      "note": "Payoneer's 1% fee when a client pays by bank transfer, plus the conversion markup.",
+      "verify": true
+    },
+    {
+      "id": "direct_wise_bank",
+      "label": "Client pays Wise → bank",
+      "platforms": ["direct"],
+      "flat_fee_usd": 0,
+      "fee_pct": 0.6,
+      "fx_markup_pct": 0,
+      "speed": "1-2 days",
+      "note": "Wise uses the market rate with a small fee. Check whether Wise can receive payments for your Pakistani account.",
+      "verify": true
+    }
+  ]
+}
