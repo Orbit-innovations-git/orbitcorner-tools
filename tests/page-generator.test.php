@@ -1,7 +1,8 @@
 <?php
 /**
- * Tests for includes/page-generator.php and the server-side date math in
- * tools/countdown/countdown.php. Runs without WordPress (tests/wp-stand-ins.php).
+ * Tests for includes/page-generator.php, the server-side date math in
+ * tools/countdown/countdown.php and the related-tools links in orbitcorner-tools.php.
+ * Runs without WordPress (tests/wp-stand-ins.php).
  *
  *   php tests/page-generator.test.php
  *
@@ -229,6 +230,29 @@ test(
 		same( false === strpos( $html, 'role="tablist"' ), true, 'no tabs' );
 		$html = oc_tools_countdown_render( 'x', array( 'mode' => 'date', 'holiday' => 'christmas', 'tabs' => 0 ) );
 		same( 1, preg_match( '/Christmas is on <span data-cd-i="d">[A-Z][a-z]+day, December 25, \d{4}<\/span>\. That\'s <span data-cd-i="n">/', $html ) );
+	}
+);
+
+test(
+	'Related tools link only to the real page slugs, and only once the page is published',
+	function () {
+		$real = array( '/tools/take-home-pay/', '/tools/time-card-calculator/', '/tools/countdown/' );
+		foreach ( oc_tools_related_map() as $name => $links ) {
+			foreach ( $links as $link ) {
+				same( in_array( $link['path'], $real, true ), true, $name . ' -> ' . $link['path'] );
+			}
+		}
+		$html = oc_tools_related_html( 'time-card' );
+		same( false !== strpos( $html, 'href="https://orbitcorner.com/tools/take-home-pay/"' ), true, 'take-home link' );
+		same( false === strpos( $html, 'freelancer-take-home-calculator' ), true, 'old 404 link' );
+		same( false !== strpos( $html, '/tools/countdown/' ), true, 'countdown link' );
+
+		$pages                    = $GLOBALS['oc_test_pages'];
+		$GLOBALS['oc_test_pages'] = array( 'tools/time-card-calculator', 'tools/take-home-pay' );
+		$html                     = oc_tools_related_html( 'time-card' );
+		same( false === strpos( $html, '/tools/countdown/' ), true, 'no countdown link before its page is live' );
+		same( oc_tools_related_html( 'take-home' ), '', 'empty list prints nothing' );
+		$GLOBALS['oc_test_pages'] = $pages;
 	}
 );
 

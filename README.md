@@ -8,7 +8,7 @@ A WordPress plugin that adds free, interactive tools to [orbitcorner.com](https:
 | [Countdown & Date Tool](#countdown--date-tool) | `[orbit_tool name="countdown"]` | Anyone in the US: how long until a time or date, days until holidays, days from today, days between dates. Powers the [generated search pages](#page-generator) |
 | [Freelancer Take-Home Calculator](#freelancer-take-home-calculator) | `[orbit_tool name="take-home"]` | Freelancers in Pakistan: what reaches the bank after fees, exchange rates and tax |
 
-Everything runs in the visitor's browser. The tools send no data anywhere, set no cookies and load nothing from other websites. Results are estimates, and the tools say so.
+Everything runs in the visitor's browser. The tools never send what visitors type, set no cookies and load nothing from other websites. The only thing reported is one anonymous [`tool_used` event](#analytics-event-tool_used) per page view, to the site's own Google Analytics or Tag Manager if the page has one. Results are estimates, and the tools say so.
 
 ---
 
@@ -34,6 +34,25 @@ Add a **Shortcode** block to any page or post and paste a shortcode from the tab
 - The plugin's CSS and JavaScript load only on pages that use the shortcode, and the scripts load in the footer.
 - **Settings → OrbitCorner Tools** lists every tool's shortcode.
 - In Kadence, use the normal content width for tool pages, not "Narrow".
+
+## Analytics event (tool_used)
+
+The first time a visitor changes an input in a tool (types in a field, picks a date, changes a dropdown or a checkbox), the page reports it once:
+
+- `gtag('event', 'tool_used', { tool_name: 'time-card' })` if `window.gtag` exists (Google Analytics 4, Site Kit),
+- otherwise `window.dataLayer.push({ event: 'tool_used', tool_name: 'time-card' })` if `window.dataLayer` exists (Google Tag Manager),
+- otherwise nothing.
+
+`tool_name` is the shortcode name: `time-card`, `countdown` or `take-home`.
+
+- **Once per page view**, however much the visitor types, even with several tools on the page. Loading the page, the live countdown and button presses (tabs, chips, Copy, Share) don't count.
+- **No personal data.** Only the tool's name is sent: never what was typed, no IDs, no cookies from the plugin. The plugin loads no analytics of its own; it uses the tag the site already has, so the site's consent settings (such as Google consent mode) still apply.
+- **Skipped under Do Not Track** (`navigator.doNotTrack === '1'`).
+- **Safe:** errors from the analytics tag are caught, so a broken or blocked tag never breaks a tool.
+
+It lives in `assets/oc-tools.js` (1.7 KB), which loads in the footer on every page with a tool. New tools get it without any work: any input inside the shortcode's container counts. Tests: `tests/tool-used.test.js`.
+
+**See it in Google Analytics 4:** Admin → Data display → Custom definitions → Create custom dimension: name "Tool name", scope Event, event parameter `tool_name`. **Reports → Realtime** shows the events within a minute; the "Tool name" breakdown fills in after a day or two. **With Tag Manager:** add a GA4 Event tag named `tool_used` with the parameter `tool_name` from a Data Layer Variable `tool_name`, fired by a Custom Event trigger `tool_used`.
 
 ---
 
@@ -123,7 +142,7 @@ If any day key is in the URL, the whole week comes from the link (missing days a
 
 ### Search engines
 
-The shortcode prints one `SoftwareApplication` JSON-LD block per page (name, description, `UtilitiesApplication`, `Web`, price 0). If All in One SEO also adds a SoftwareApplication schema to the page, remove one of them. Under the tool, a **Related tools** list links to other tools (see `oc_tools_related_map()` in `orbitcorner-tools.php`).
+The shortcode prints one `SoftwareApplication` JSON-LD block per page (name, description, `UtilitiesApplication`, `Web`, price 0). If All in One SEO also adds a SoftwareApplication schema to the page, remove one of them. Under the tool, a **Related tools** list links to other tools (see `oc_tools_related_map()` in `orbitcorner-tools.php`). A link shows only while a page is published at its path, so the Countdown link appears once that page is live (purge LiteSpeed Cache afterwards so cached pages pick it up).
 
 ### The calculation module
 
@@ -364,7 +383,7 @@ The time card is the pattern to copy.
 
 1. **The math.** Create `tools/<name>/<name>-calc.js`: pure functions, no page access, `window.OC…Calc` in the browser and `module.exports` in Node. Write `tests/<name>.test.js` next to the others and run `node tests/run-all.js`.
 2. **The HTML.** Create `tools/<name>/<name>.php` (with the `ABSPATH` check) with an `options` function that cleans the tool's shortcode attributes and a `render` function that prints the whole tool with its default result, escaping everything. Give elements `data-…` hooks for the script. `require_once` it at the top of `orbitcorner-tools.php`.
-3. **The interface.** Create `tools/<name>/app.js`: find the printed elements, read the inputs, call the calc module and update text in place. Don't rebuild the HTML.
+3. **The interface.** Create `tools/<name>/app.js`: find the printed elements, read the inputs, call the calc module and update text in place. Don't rebuild the HTML. Don't add analytics: the shared [`tool_used` event](#analytics-event-tool_used) already covers every tool.
 4. **Register it.** Add an entry to `oc_tools_registry()` in `orbitcorner-tools.php`:
 
    ```php
@@ -379,7 +398,7 @@ The time card is the pattern to copy.
    ),
    ```
 
-   If the tool takes new shortcode attributes, add them to the `shortcode_atts()` list in `oc_tools_shortcode()`. Add its page to `oc_tools_related_map()` once it's live.
+   If the tool takes new shortcode attributes, add them to the `shortcode_atts()` list in `oc_tools_shortcode()`. Add its page to `oc_tools_related_map()` with the real page slug (e.g. `/tools/take-home-pay/`) once it's live.
 5. **Style, preview and measure.** Add styles to `assets/oc-tools.css` under `.oc-app` in the tool's own section. Make a preview builder like `tests/build-preview.php`, open the preview at phone and desktop widths, and set `min_height` a little under the measured heights. Check the budgets (below), then build the zip.
 
 Tools without a `render` function also work: the container shows "Loading…" and the script builds everything, like the take-home tool. Only tools with `'rates' => true` get `window.OCToolData`.
@@ -423,6 +442,7 @@ orbitcorner-tools.php              plugin core: registry, shortcode, related too
 uninstall.php                      deletes the saved settings when the plugin is deleted
 data/rates.json                    take-home: default fees, tax rates and routes
 assets/oc-tools.css                shared styles for all tools (one section per tool)
+assets/oc-tools.js                 shared script on every tool page: the tool_used analytics event
 tools/take-home/calc.js            take-home: the calculation (no page access, tested in Node)
 tools/take-home/app.js             take-home: builds the form and results
 tools/time-card/time-card.php      time card: shortcode options and the HTML the shortcode prints
@@ -434,7 +454,8 @@ tools/countdown/app.js             countdown: enhances the printed tool, live co
 includes/page-generator.php        Tools -> OrbitCorner Pages, [orbit_hub_list], titles, SEO and slug handling for generated pages
 tests/run-all.js                   runs every tests/*.test.js (and *.test.php with PHP)
 tests/countdown.test.js            Node tests for the countdown calculation
-tests/page-generator.test.php      PHP tests for the generator's pages and the server's date math
+tests/page-generator.test.php      PHP tests for the generator's pages, the server's date math and the related-tools links
+tests/tool-used.test.js            Node tests for the tool_used event in assets/oc-tools.js
 tests/wp-stand-ins.php             stand-ins for WordPress functions, used by the preview builder and PHP tests
 tests/take-home.test.js            Node tests for the take-home calculation
 tests/time-card.test.js            Node tests for the time card calculation

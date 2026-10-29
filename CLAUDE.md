@@ -11,7 +11,7 @@ WordPress plugin with free browser tools for orbitcorner.com (WordPress + Kadenc
 ## Code rules
 
 - Plain PHP + vanilla JavaScript + CSS. No build step, npm, frameworks, jQuery, libraries, web fonts or CDN. The folder must work as-is when zipped.
-- Everything runs in the visitor's browser: no network requests from a tool, no tracking, no cookies.
+- Everything runs in the visitor's browser: no network requests from a tool, no cookies, and no tracking beyond the shared `tool_used` event (below).
 - PHP: `ABSPATH` check in every file; escape all output (`esc_html`, `esc_attr`, `esc_url`); sanitize and whitelist all input; prefix everything `oc_tools_` / `oc-`.
 - JavaScript: ES5 syntax (no `let`/`const`/arrows/template literals) plus `Intl`, `URLSearchParams`, `Blob`, `navigator.clipboard`, `navigator.share` with fallbacks; an IIFE with `'use strict'`; no `eval`; no `console.log`; escape anything that goes into `innerHTML` (prefer `textContent`).
 - CSS: everything scoped under `.oc-app`, one section per tool in `assets/oc-tools.css`. The only rules allowed outside `.oc-app` are print rules that hide the theme on a tool's page.
@@ -24,6 +24,7 @@ orbitcorner-tools.php      registry, shortcode, related tools, JSON-LD, settings
 uninstall.php
 data/rates.json            take-home data (only sent to tools with 'rates' => true)
 assets/oc-tools.css        all styles
+assets/oc-tools.js         shared script on every tool page: the tool_used analytics event
 tools/<name>/              one folder per tool
 includes/page-generator.php  Tools → OrbitCorner Pages: generated search pages for the countdown
 tests/                     Node and PHP tests, run-all.js, wp-stand-ins.php, previews (not shipped in the zip)
@@ -39,7 +40,14 @@ tests/                     Node and PHP tests, run-all.js, wp-stand-ins.php, pre
 | `tests/<name>.test.js` | Plain Node `assert` tests for the calc module, picked up by `tests/run-all.js`. PHP logic gets `tests/<name>.test.php` (run too when PHP is installed). |
 | `php tests/build-preview.php <name> [attr=value…]` → `tests/preview-<name>.html` | The real shortcode output with the WordPress stand-ins in `tests/wp-stand-ins.php`, so the preview opens as a file. |
 
-Register the tool in `oc_tools_registry()` (`title`, `description`, `folder`, `scripts`, `render`, `options`, `min_height`), add it to `oc_tools_related_map()` when its page is live.
+Register the tool in `oc_tools_registry()` (`title`, `description`, `folder`, `scripts`, `render`, `options`, `min_height`), add it to `oc_tools_related_map()` when its page is live. Related links use the real page slugs (`/tools/take-home-pay/`, `/tools/time-card-calculator/`, `/tools/countdown/`), and `oc_tools_related_html()` skips any whose page isn't published, so the list never links to a 404.
+
+## Analytics event (tool_used)
+
+- Lives only in `assets/oc-tools.js`, enqueued by the shortcode for every tool. Tools never call analytics themselves.
+- The first `input` or `change` event (trusted, capture phase) inside a `[data-oc-tool]` container sends `gtag('event', 'tool_used', { tool_name })` if `window.gtag` is a function, else `window.dataLayer.push({ event: 'tool_used', tool_name })` if `dataLayer` exists, else nothing. Then the listeners are removed: one event per page view.
+- `tool_name` is the shortcode name (checked against `^[a-z0-9_-]{1,40}$`), the only value ever sent: never what was typed, no IDs. Nothing at all when `navigator.doNotTrack === '1'`. Everything inside try/catch.
+- Don't add parameters or events without the owner asking. `tests/tool-used.test.js` runs the real file in a sandbox; README explains the GA4 / Tag Manager setup.
 
 ## Countdown & Date Tool and the page generator
 

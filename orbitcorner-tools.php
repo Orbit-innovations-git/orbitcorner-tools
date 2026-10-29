@@ -3,7 +3,7 @@
  * Plugin Name:       OrbitCorner Tools
  * Plugin URI:        https://orbitcorner.com/tools/
  * Description:       Free browser-based tools for OrbitCorner. Add a tool to any page or post with a shortcode, e.g. [orbit_tool name="time-card"].
- * Version:           1.3.0
+ * Version:           1.3.1
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Orbit Innovation
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'OC_TOOLS_VERSION', '1.3.0' );
+define( 'OC_TOOLS_VERSION', '1.3.1' );
 define( 'OC_TOOLS_DIR', plugin_dir_path( __FILE__ ) );
 define( 'OC_TOOLS_URL', plugin_dir_url( __FILE__ ) );
 define( 'OC_TOOLS_OPTION', 'oc_tools_rates' );
@@ -116,11 +116,14 @@ function oc_tools_asset_version( $relative_path ) {
  */
 
 /**
- * Registers (does not enqueue) the shared stylesheet and every tool's scripts.
+ * Registers (does not enqueue) the shared stylesheet, the shared script (the tool_used
+ * analytics event) and every tool's scripts.
  */
 function oc_tools_register_assets() {
 	$css = 'assets/oc-tools.css';
 	wp_register_style( 'oc-tools', OC_TOOLS_URL . $css, array(), oc_tools_asset_version( $css ) );
+	$js = 'assets/oc-tools.js';
+	wp_register_script( 'oc-tools', OC_TOOLS_URL . $js, array(), oc_tools_asset_version( $js ), true );
 
 	foreach ( oc_tools_registry() as $name => $tool ) {
 		$deps = array();
@@ -212,6 +215,7 @@ function oc_tools_shortcode( $atts ) {
 	}
 
 	wp_enqueue_style( 'oc-tools' );
+	wp_enqueue_script( 'oc-tools' );
 	foreach ( $handles as $handle ) {
 		wp_enqueue_script( $handle );
 	}
@@ -266,7 +270,8 @@ add_shortcode( 'orbit_tool', 'oc_tools_shortcode' );
  */
 
 /**
- * Links shown under each tool. Paths are relative to the site's home URL.
+ * Links shown under each tool. Paths are relative to the site's home URL and must match
+ * the real page slugs; a link shows only while a page is published at its path.
  * Add an entry here when a tool's page goes live, e.g. the Hours Calculator.
  *
  * @return array Tool name => list of array( 'title', 'path', 'text' ).
@@ -274,7 +279,7 @@ add_shortcode( 'orbit_tool', 'oc_tools_shortcode' );
 function oc_tools_related_map() {
 	$take_home = array(
 		'title' => 'Freelancer Take-Home Calculator',
-		'path'  => '/tools/freelancer-take-home-calculator/',
+		'path'  => '/tools/take-home-pay/',
 		'text'  => 'See what reaches your bank after platform fees, exchange rates and tax.',
 	);
 	$time_card = array(
@@ -307,7 +312,15 @@ function oc_tools_related_html( $name ) {
 	}
 	$items = '';
 	foreach ( $map[ $name ] as $link ) {
+		// No link to a page that doesn't exist yet (e.g. before the countdown page is published).
+		$page = get_page_by_path( trim( $link['path'], '/' ) );
+		if ( ! $page || 'publish' !== get_post_status( $page ) ) {
+			continue;
+		}
 		$items .= '<li><a href="' . esc_url( home_url( $link['path'] ) ) . '">' . esc_html( $link['title'] ) . '</a> ' . esc_html( $link['text'] ) . '</li>';
+	}
+	if ( '' === $items ) {
+		return '';
 	}
 	return '<nav class="oc-related" aria-label="Related tools"><h2 class="oc-related-title">Related tools</h2><ul>' . $items . '</ul></nav>';
 }

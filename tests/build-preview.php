@@ -67,6 +67,7 @@ if ( 'countdown' === $name ) {
   </script>
 ';
 }
+$scripts .= '  <script src="' . $src . 'assets/oc-tools.js"></script>' . "\n";
 foreach ( $tool['scripts'] as $script ) {
 	$scripts .= '  <script src="' . $src . 'tools/' . $tool['folder'] . '/' . $script . '"></script>' . "\n";
 }

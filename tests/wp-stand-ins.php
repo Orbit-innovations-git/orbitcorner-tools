@@ -88,8 +88,13 @@ function trailingslashit( $text ) {
 function get_bloginfo() {
 	return 'OrbitCorner';
 }
-function get_page_by_path() {
-	return null;
+// Published pages, as on orbitcorner.com. The Hours Calculator page doesn't exist yet.
+$GLOBALS['oc_test_pages'] = array( 'tools/time-card-calculator', 'tools/take-home-pay', 'tools/countdown' );
+function get_page_by_path( $path ) {
+	return in_array( $path, $GLOBALS['oc_test_pages'], true ) ? (object) array( 'post_status' => 'publish' ) : null;
+}
+function get_post_status( $post ) {
+	return $post->post_status;
 }
 function wp_enqueue_style() {}
 function wp_enqueue_script() {}
