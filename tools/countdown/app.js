@@ -61,7 +61,6 @@
     var P = {};
     var mode;
     var lastTarget = 0; // Time mode: the moment counted to, kept 5 seconds after it passes.
-    var lastMinute;
     var lastDay;
     var timers = {};
 
@@ -209,21 +208,24 @@
       }
     };
 
+    /** The live region says only the headline; a running counter's changes once a minute. */
+    function say(r) {
+      if (r && find(root, 'live').textContent !== r.live) {
+        find(root, 'live').textContent = r.live;
+      }
+    }
+
     function render(changed) {
-      var t = now();
-      var p = P[mode];
-      var r = R[mode](p, t);
-      var minute = Math.floor(t / 6e4);
-      p.querySelector('[data-cd-ans]').classList.toggle('is-stale', !r);
-      if (changed || (r && minute !== lastMinute && p.querySelector('[data-cd-u]'))) {
-        // Only the headline: once typing pauses, and once a minute while a counter runs.
-        lastMinute = minute;
+      var r = R[mode](P[mode], now());
+      P[mode].querySelector('[data-cd-ans]').classList.toggle('is-stale', !r);
+      if (changed) {
         clearTimeout(timers.live);
         timers.live = setTimeout(function () {
-          if (r && find(root, 'live').textContent !== r.live) {
-            find(root, 'live').textContent = r.live;
-          }
-        }, changed ? 600 : 0);
+          timers.live = 0;
+          say(r);
+        }, 600); // Once typing pauses.
+      } else if (!timers.live && P[mode].querySelector('[data-cd-u]')) {
+        say(r);
       }
       return r;
     }
@@ -240,15 +242,27 @@
       }, 'data-cd-i');
     }
 
+    /** Dates printed as Eastern "today" (or Dec 31) follow the visitor's; after midnight, unless changed. */
+    function followToday(t, was) {
+      [].forEach.call(root.querySelectorAll('[data-cd-def]'), function (input) {
+        var eoy = input.getAttribute('data-cd-def') === 'eoy';
+        if (!was || input.value === (eoy ? was.slice(0, 4) + '-12-31' : was)) {
+          input.value = C.iso(eoy ? new Date(t.getFullYear(), 11, 31) : t);
+        }
+      });
+    }
+
     /** Every second: a live counter; otherwise only when the date changes. */
     function tick() {
       var t = now();
-      var newDay = C.iso(t) !== lastDay;
-      lastDay = C.iso(t);
-      if (newDay && intro) {
-        renderIntro(t);
-      }
-      if (newDay || mode === 'time' || mode === 'date') {
+      if (C.iso(t) !== lastDay) {
+        followToday(t, lastDay);
+        lastDay = C.iso(t);
+        if (intro) {
+          renderIntro(t);
+        }
+        render(false);
+      } else if (mode === 'time' || mode === 'date') {
         render(false);
       }
     }
@@ -406,10 +420,7 @@
       }
     });
 
-    // Dates printed as Eastern "today" become the visitor's today; a shared link may then change them.
-    [].forEach.call(root.querySelectorAll('[data-cd-def]'), function (input) {
-      input.value = C.iso(input.getAttribute('data-cd-def') === 'eoy' ? new Date(now().getFullYear(), 11, 31) : now());
-    });
+    followToday(now());
     if (!urlTaken && typeof URLSearchParams === 'function') {
       readUrl();
     }

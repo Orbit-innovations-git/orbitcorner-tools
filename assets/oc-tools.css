@@ -1398,7 +1398,8 @@
   font-variant-numeric: tabular-nums;
 }
 
-.oc-app .oc-cd :focus-visible {
+.oc-app .oc-cd :focus-visible,
+.oc-app .oc-cd button:focus-visible {
   outline: 3px solid var(--oc-primary);
   outline-offset: 2px;
   box-shadow: none;
@@ -1642,6 +1643,11 @@
   text-transform: uppercase;
 }
 
+.oc-app .oc-cd-box:first-child {
+  min-width: auto; /* Grows to fit 1,000+ days; the other boxes shrink. */
+  max-width: none;
+}
+
 .oc-app .oc-cd-box b,
 .oc-app .oc-cd-box:not([hidden]) ~ .oc-cd-box::before {
   display: block;
@@ -1759,6 +1765,11 @@
 
   .oc-app .oc-cd-count {
     gap: 10px;
+  }
+
+  .oc-app .oc-cd-box {
+    font-size: 11px;
+    letter-spacing: 0.02em;
   }
 
   .oc-app .oc-cd-box:not([hidden]) ~ .oc-cd-box::before {
