@@ -5,6 +5,7 @@ A WordPress plugin that adds free, interactive tools to [orbitcorner.com](https:
 | Tool | Shortcode | For |
 |---|---|---|
 | [Time Card Calculator](#time-card-calculator) | `[orbit_tool name="time-card"]` | US hourly workers, shift workers and managers: weekly hours, breaks, overtime and gross pay |
+| [Countdown & Date Tool](#countdown--date-tool) | `[orbit_tool name="countdown"]` | Anyone in the US: how long until a time or date, days until holidays, days from today, days between dates. Powers the [generated search pages](#page-generator) |
 | [Freelancer Take-Home Calculator](#freelancer-take-home-calculator) | `[orbit_tool name="take-home"]` | Freelancers in Pakistan: what reaches the bank after fees, exchange rates and tax |
 
 Everything runs in the visitor's browser. The tools send no data anywhere, set no cookies and load nothing from other websites. Results are estimates, and the tools say so.
@@ -149,6 +150,157 @@ Times are 24-hour `"HH:MM"` strings, as `<input type="time">` gives them. A shif
 
 ---
 
+## Countdown & Date Tool
+
+Answers four everyday questions, each with an answer on screen as soon as the page loads:
+
+| Tab | Question | Default answer |
+|---|---|---|
+| **Time** | "How long until 3:30 PM?" | A live countdown to the next 3:30 PM, with quick picks (9:00 AM … 10:00 PM) and how much of today is done. At zero it shows "It's 3:30 PM!" for 5 seconds, then counts to tomorrow's. |
+| **Date** | "How many days until Christmas?" | A live countdown (days, hours, minutes, seconds) to the start of the date, the calendar days and weeks left, and the day of the year. Pick one of 26 holidays or any date, and give it a name. A past date shows "that was 12 days ago" and a **Count to … 2027** button. |
+| **From today** | "What date is 75 days from today?" | The date that many days (or business days) after a start date, the date that many days before, the week number and day of the year. |
+| **Between** | "How many days between two dates?" | Days, weeks, months, hours and the share of a year. If the end is before the start it counts backwards and says so. |
+
+Every result has **Copy** and **Share**. Share puts the current tab's inputs in the page address and opens the phone's share sheet, or copies the link on a computer. Errors appear under the field ("Enter a time, like 3:30 PM", "Enter a date", "Enter a number up to 10,000") while the last good answer stays visible, dimmed.
+
+The live counter's digits are hidden from screen readers. One polite live sentence ("2 hours and 14 minutes until 3:30 PM") is updated once a minute and after you stop typing. All countdowns on a page share one 1-second timer, which stops while the tab is hidden; every value comes from the clock, so it is right again the moment the tab comes back.
+
+### Shortcode options
+
+All are optional. Invalid values are ignored.
+
+| Attribute | Values | Default | Example |
+|---|---|---|---|
+| `mode` | `time`, `date`, `from`, `between`: the tab that opens | `time` | `mode="from"` |
+| `target` | For `time`: a time (`15:30`, `3:30 pm`). For `date`: `YYYY-MM-DD` | `15:30`; Christmas | `target="2027-06-12"` |
+| `holiday` | A holiday key (table below), for `date`. Wins over `target` and moves to next year by itself | `christmas` | `holiday="halloween"` |
+| `label` | A short name for the headline, for `date` (up to 40 characters) | the holiday's name | `label="Mom's birthday"` |
+| `days` | Whole number from -10000 to 10000, for `from` | `30` | `days="75"` |
+| `tabs` | `1` shows the four tabs. `0` shows only the chosen mode, plus a computed paragraph and "More date tools" links instead of the related-tools list | `1` | `tabs="0"` |
+
+```
+[orbit_tool name="countdown"]
+[orbit_tool name="countdown" mode="date" holiday="4th-of-july" tabs="0"]
+[orbit_tool name="countdown" mode="date" target="2027-06-12" label="Our wedding"]
+[orbit_tool name="countdown" mode="from" days="90" tabs="0"]
+```
+
+A link like `/tools/countdown/?mode=between` opens that tab straight away (the page prints it already open).
+
+### Time zones
+
+- **Server:** the shortcode prints a real answer worked out in **Eastern Time** (`America/New_York`), with the line "Shown in Eastern Time until your browser loads". Search engines and visitors without JavaScript see it.
+- **Browser:** the script redoes everything in the visitor's own time zone and replaces that line with "Times are in your time zone (America/Chicago)." Nothing moves on the page when it does (layout shift 0).
+- **LiteSpeed Cache:** pages with the tool ask LiteSpeed to keep them only until the next midnight Eastern, so the printed "today" is never a day old.
+- **Daylight saving:** countdowns count real time. At 1:00 AM on the night clocks spring forward, 3:00 AM is one hour away. A time that doesn't exist that night (2:30 AM) counts to when it would have been and says "That's at 3:30 AM today". Calendar dates never shift.
+- **Midnight:** a From or Start date still on the default "today" moves to the new day at midnight, and holiday countdowns move on to next year once the day is over.
+
+### How it counts
+
+- **Days until a date** are calendar days: from Thursday to Friday is 1 day, whatever the time. The live counter counts to 12:00 AM at the start of the date.
+- **Days from today:** day 1 is tomorrow. **Business days** skip Saturdays and Sundays only; holidays are not skipped (the tool says so).
+- **Between:** the start date isn't counted unless you tick "Include the end date", which counts both ends (Jan 1 to Dec 31 = 364 days, or 365 with the end). Months and years are counted the way people count birthdays (the rule Java's `Period.between` uses): a month is complete when the day of the month reaches the start's, and leftover days count from the start moved on by the whole months, using the last day of a shorter month. So Jan 31 to Feb 28 = 0 months 28 days, Jan 31 to Mar 1 = 1 month 1 day (from Feb 28), and Feb 29, 2024 to Feb 28, 2026 = 1 year 11 months 30 days. Share of a year = days ÷ 365.
+- **Week number** is the ISO 8601 week (weeks start on Monday; week 1 holds the year's first Thursday), so Jan 1, 2027 is in week 53.
+
+### Holidays
+
+| Key | Holiday | Rule |
+|---|---|---|
+| `new-years` | New Year's Day | Jan 1 |
+| `mlk-day` | Martin Luther King Jr. Day | 3rd Monday of January |
+| `super-bowl` | Super Bowl Sunday | 2nd Sunday of February (the NFL's pattern since 2022) |
+| `valentines-day` | Valentine's Day | Feb 14 |
+| `presidents-day` | Presidents' Day | 3rd Monday of February |
+| `daylight-saving-starts` | Daylight Saving Time Starts | 2nd Sunday of March |
+| `st-patricks-day` | St. Patrick's Day | Mar 17 |
+| `spring` | First Day of Spring | Mar 20 (approximately) |
+| `easter` | Easter | Western Easter, Anonymous Gregorian algorithm |
+| `tax-day` | Tax Day | Apr 15 (not moved when it falls on a weekend) |
+| `mothers-day` | Mother's Day | 2nd Sunday of May |
+| `memorial-day` | Memorial Day | Last Monday of May |
+| `juneteenth` | Juneteenth | Jun 19 |
+| `fathers-day` | Father's Day | 3rd Sunday of June |
+| `summer` | First Day of Summer | Jun 21 (approximately) |
+| `4th-of-july` | 4th of July | Jul 4 |
+| `labor-day` | Labor Day | 1st Monday of September |
+| `fall` | First Day of Fall | Sep 22 (approximately) |
+| `halloween` | Halloween | Oct 31 |
+| `daylight-saving-ends` | Daylight Saving Time Ends | 1st Sunday of November |
+| `thanksgiving` | Thanksgiving | 4th Thursday of November |
+| `black-friday` | Black Friday | The day after Thanksgiving |
+| `winter` | First Day of Winter | Dec 21 (approximately) |
+| `christmas-eve` | Christmas Eve | Dec 24 |
+| `christmas` | Christmas | Dec 25 |
+| `new-years-eve` | New Year's Eve | Dec 31 |
+
+Federal holidays are shown on their actual date, not the weekday they are observed on. A holiday counts as "today" all day, then moves to next year's date. The list is in `countdown-calc.js` (browser) and `countdown.php` (server); keep both the same. `tests/page-generator.test.php` checks a sample of server dates, and the two lists have been compared for every year from 1900 to 2199.
+
+### Share links
+
+| Key | Tab | Meaning | Example |
+|---|---|---|---|
+| `mode` | all | The open tab | `mode=date` |
+| `t` | Time | Time, 24-hour | `t=15:30` |
+| `h` | Date | Holiday key (its date is worked out on load, so the link stays current) | `h=thanksgiving` |
+| `d` | Date | Date, when it isn't a holiday | `d=2027-06-12` |
+| `l` | Date | Name, if it isn't the holiday's own | `l=Our%20wedding` |
+| `n` | From today | Days | `n=75` |
+| `biz` | From today | `1` = business days only | `biz=1` |
+| `from` | From today | Start date (left out when it is today) | `from=2026-11-02` |
+| `start`, `end` | Between | Dates (start left out when it is today) | `end=2026-12-31` |
+| `inc` | Between | `1` = include the end date | `inc=1` |
+
+### Testing with a fake clock
+
+`php tests/build-preview.php countdown` writes `tests/preview-countdown.html`. Its **Fake now** field reloads the page with `?ocnow=2026-12-31T23:59:50`, which sets `data-oc-now` on the tool; the app then runs from that moment and the clock keeps ticking. The shortcode never prints `data-oc-now`, so it has no effect on the live site. Add shortcode attributes after the tool name, e.g. `php tests/build-preview.php countdown mode=from days=75 tabs=0`.
+
+### The calculation module
+
+`tools/countdown/countdown-calc.js` is `window.OCCountdownCalc` in the browser and a Node module in `tests/countdown.test.js`. It never reads the clock: every function takes `now`. It works in the local time zone, and calendar dates are Dates at 12:00 so adding days never trips over a daylight saving change.
+
+`parseTime`, `formatTime`, `nextOccurrence(now, h, m)` → `{ target, isTomorrow }`, `diff(now, target)` → `{ totalMs, days, hours, minutes, seconds, isPast }`, `dayProgress`, `describe(parts[, spoken])`, `addDays(date, n, { businessDays })`, `addMonths`, `between(a, b, { includeEnd })` → `{ days, weeks, remDays, months, remMonthsDays, years, yearMonths, remYearsDays, backwards }`, `daysBetween`, `weekNumber`, `dayOfYear`, `daysLeftInYear`, `easter`, `holidays(year)` → `[{ key, name, date, approx }]`, `nextHoliday(now, key)`, and the US formats `formatDate(date, 'long' | 'medium' | 'short')`, `formatNumber`, `weeksDays`, `plural`, `iso`, `parseDate`.
+
+---
+
+## Page generator
+
+**Tools → OrbitCorner Pages** creates search pages that use the countdown tool, as **drafts**, 50 at a time, under three hub pages. Only administrators see it, and every button is protected by a nonce.
+
+| Set | Pages | Address | Title |
+|---|---|---|---|
+| How Long Until | 96: every 15 minutes from 12:00 AM to 11:45 PM (whole hours, then half hours, then quarter hours are generated first) | `/how-long-until/3-30-pm/` | How Long Until 3:30 PM? Live Countdown |
+| Days From Today | 60: 1–30, 45, 60, 75, 90, 100, 120, 150, 180, 200, 250, 270, 300, 365, 500, 1000, then 35, 40, 50, 70, 80, 110, 130, 140, 160, 170, 190, 210, 240, 280, 320 | `/days-from-today/75/` | What Is 75 Days From Today? (Date Calculator) |
+| Days Until | 26: one per holiday above | `/days-until/christmas/` | How Many Days Until Christmas 2026? |
+
+**What a page contains.** The tool with `tabs="0"` (one mode), then core blocks you can edit: a sentence about the time (time pages), a note on how days are counted (days-from-today) or a short factual note about the holiday (days-until), a list of nearby pages (±15 and ±30 minutes; ±5, 10 and 15 days; the next 6 holidays), and a **Related** list (the hub, the Countdown & Date Calculator, the Time Card Calculator, and the Hours Calculator once a page exists at `/tools/hours-calculator/`). The sentences that depend on today ("75 days from today is January 12, 2027 (a Tuesday)…", "Christmas is on Friday, December 25, 2026. That's 57 days from today…") are printed by the shortcode on every page load, not saved in the page, and the browser refreshes them in the visitor's time zone.
+
+**Buttons, per set:**
+
+- **Hub page:** pick one, or leave "Create … automatically". The hub is created as a draft with a short intro and `[orbit_hub_list]`, which shows its published pages as a grid of links. **Create missing hub pages** at the top creates all three.
+- **Generate next 50:** creates up to 50 missing pages as drafts. Addresses already used by another page are skipped and listed in the log.
+- **Publish all drafts in this set:** asks first, then publishes every draft of the set, and the hub if it is still a draft.
+- **Regenerate content:** asks first, then rewrites the content of every page of the set from the current template. Slugs, titles and status stay; edits to those pages' content are replaced.
+- **Copy layout from** (top of the screen): new pages get that page's template and Kadence page settings, for example your tool page with the normal content width.
+
+**Details:**
+
+- WordPress normally renames an all-digit page slug like `75` to `75-2`; generated pages keep theirs, and `/days-from-today/75/` opens the page instead of "page 75 of the hub".
+- Links in a page's lists to pages that aren't published yet are hidden until they are, so there are no broken links between batches.
+- Days-until titles are saved without a year ("How Many Days Until Christmas?"); the year of the next occurrence is added when the title is shown, in the page and in the browser tab. Write a year into a title yourself and it is left alone.
+- With All in One SEO active, generated pages get an SEO title ("… | OrbitCorner") and a description with today's answer ("75 days from today is Tuesday, January 12, 2027…"), unless you set your own in AIOSEO for that page. Without AIOSEO, the plugin prints `BreadcrumbList` JSON-LD (Home › Hub › Page); AIOSEO adds its own breadcrumbs, so it is not duplicated.
+- Deleting the plugin removes the generator's settings but leaves the pages: they are your content. Add a set in code with the `oc_tools_page_sets` filter (see `includes/page-generator.php`).
+
+### Launch checklist
+
+1. Tools → OrbitCorner Pages: pick the layout page and save, then **Create missing hub pages**.
+2. **Generate next 50** for one set (start with How Long Until). Open 5 drafts and check them.
+3. **Publish all drafts in this set**, then purge LiteSpeed Cache (**LiteSpeed Cache → Toolbox → Purge All**).
+4. Open 3 published pages in a private window.
+5. Wait 14 days. In Search Console, check **Pages** (are they indexed?) and **Performance** (impressions, queries).
+6. If they are being indexed, generate and publish the next 50 (or the next set). Repeat.
+
+---
+
 ## Freelancer Take-Home Calculator
 
 A freelancer in Pakistan enters what the client pays, and the calculator shows how many rupees reach their bank after:
@@ -239,19 +391,20 @@ Tools without a `render` function also work: the container shows "Loading…" an
 No build step and no npm packages. The folder works as-is.
 
 ```bash
-# All tests (plain Node, no test framework)
+# All tests (plain Node, no test framework; also runs tests/*.test.php when PHP is installed)
 node tests/run-all.js
 
-# Time card preview: rebuild it from the real shortcode output, then open the file in a browser (no server needed)
-php tests/build-preview.php
-php tests/build-preview.php rate=20 ot=california   # with shortcode attributes
+# Previews: rebuild one from the real shortcode output, then open the file in a browser (no server needed)
+php tests/build-preview.php                          # time card -> tests/preview-time-card.html
+php tests/build-preview.php rate=20 ot=california    # with shortcode attributes
+php tests/build-preview.php countdown                # countdown -> tests/preview-countdown.html (has a Fake now field)
 
 # Take-home preview (it fetches rates.json, so it needs a server)
 python3 -m http.server 8000
 # then open http://localhost:8000/tests/preview.html
 ```
 
-**Budgets for each tool:** its two scripts together ≤ 25 KB unminified, its CSS ≤ 12 KB, no images (inline SVG icons ≤ 1 KB each), no layout shift on load. The time card is at 24.6 KB of JavaScript (8.2 KB gzipped) and 11.7 KB of CSS.
+**Budgets for each tool:** its two scripts together ≤ 25 KB unminified, its CSS ≤ 12 KB, no images (inline SVG icons ≤ 1 KB each), no layout shift on load. The time card is at 24.6 KB of JavaScript (8.2 KB gzipped) and 11.7 KB of CSS. The countdown is at 30.9 KB of JavaScript (10.1 KB gzipped), over the budget: it is four tools and a 26-holiday engine in one (see the note in `CLAUDE.md`). Its CSS, with the hub grid, is 7.8 KB.
 
 ### Build the zip
 
@@ -275,17 +428,25 @@ tools/take-home/app.js             take-home: builds the form and results
 tools/time-card/time-card.php      time card: shortcode options and the HTML the shortcode prints
 tools/time-card/time-card-calc.js  time card: the calculation (no page access, tested in Node)
 tools/time-card/app.js             time card: enhances the printed form
-tests/run-all.js                   runs every tests/*.test.js
+tools/countdown/countdown.php      countdown: shortcode options, server date math (Eastern Time) and the HTML it prints
+tools/countdown/countdown-calc.js  countdown: the date math and holidays (no page access, tested in Node)
+tools/countdown/app.js             countdown: enhances the printed tool, live counter, tabs, share links
+includes/page-generator.php        Tools -> OrbitCorner Pages, [orbit_hub_list], titles, SEO and slug handling for generated pages
+tests/run-all.js                   runs every tests/*.test.js (and *.test.php with PHP)
+tests/countdown.test.js            Node tests for the countdown calculation
+tests/page-generator.test.php      PHP tests for the generator's pages and the server's date math
+tests/wp-stand-ins.php             stand-ins for WordPress functions, used by the preview builder and PHP tests
 tests/take-home.test.js            Node tests for the take-home calculation
 tests/time-card.test.js            Node tests for the time card calculation
 tests/preview.html                 take-home local preview
-tests/build-preview.php            writes tests/preview-time-card.html from the real shortcode output
+tests/build-preview.php            writes tests/preview-<tool>.html from the real shortcode output
 tests/preview-time-card.html       time card local preview (generated)
+tests/preview-countdown.html       countdown local preview with a Fake now field (generated)
 ```
 
 ## Uninstall
 
-Deactivating the plugin keeps your saved rates. Deleting it from the Plugins screen also deletes the saved rates.
+Deactivating the plugin keeps your saved rates. Deleting it from the Plugins screen also deletes the saved rates and the page generator's settings. Pages the generator created stay.
 
 ## License
 

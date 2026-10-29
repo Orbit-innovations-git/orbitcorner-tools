@@ -30,6 +30,9 @@ function sanitize_text_field( $text ) {
 	return trim( preg_replace( '/[\r\n\t ]+/', ' ', strip_tags( (string) $text ) ) );
 }
 function do_action() {}
+function wp_unslash( $value ) {
+	return is_string( $value ) ? stripslashes( $value ) : $value;
+}
 function sanitize_key( $key ) {
 	return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $key ) );
 }

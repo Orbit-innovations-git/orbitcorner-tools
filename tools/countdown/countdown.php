@@ -666,6 +666,10 @@ function oc_tools_countdown_render( $uid, $options ) {
 		'from'    => 'From today',
 		'between' => 'Between',
 	);
+	// A ?mode= link (e.g. "More date tools") opens that tab without a jump; LiteSpeed caches each URL apart.
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Only picks the open tab.
+	$asked = $tabs && isset( $_GET['mode'] ) ? sanitize_key( wp_unslash( $_GET['mode'] ) ) : '';
+	$mode  = isset( $names[ $asked ] ) ? $asked : $mode;
 	$modes = $tabs ? array_keys( $names ) : array( $mode );
 
 	// LiteSpeed Cache: keep the page no longer than until midnight Eastern, so "today" stays right.

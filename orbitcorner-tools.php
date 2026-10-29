@@ -272,14 +272,25 @@ add_shortcode( 'orbit_tool', 'oc_tools_shortcode' );
  * @return array Tool name => list of array( 'title', 'path', 'text' ).
  */
 function oc_tools_related_map() {
+	$take_home = array(
+		'title' => 'Freelancer Take-Home Calculator',
+		'path'  => '/tools/freelancer-take-home-calculator/',
+		'text'  => 'See what reaches your bank after platform fees, exchange rates and tax.',
+	);
+	$time_card = array(
+		'title' => 'Time Card Calculator',
+		'path'  => '/tools/time-card-calculator/',
+		'text'  => 'Add up your weekly hours, breaks and overtime, and see your gross pay.',
+	);
+	$countdown = array(
+		'title' => 'Countdown & Date Calculator',
+		'path'  => oc_tools_countdown_page_path(),
+		'text'  => 'Live countdown to any time or date, days from today and days between dates.',
+	);
 	return array(
-		'time-card' => array(
-			array(
-				'title' => 'Freelancer Take-Home Calculator',
-				'path'  => '/tools/freelancer-take-home-calculator/',
-				'text'  => 'See what reaches your bank after platform fees, exchange rates and tax.',
-			),
-		),
+		'time-card' => array( $take_home, $countdown ),
+		'take-home' => array( $countdown ),
+		'countdown' => array( $time_card, $take_home ),
 	);
 }
 

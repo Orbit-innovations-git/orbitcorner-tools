@@ -25,7 +25,8 @@ uninstall.php
 data/rates.json            take-home data (only sent to tools with 'rates' => true)
 assets/oc-tools.css        all styles
 tools/<name>/              one folder per tool
-tests/                     Node tests, run-all.js, previews (not shipped in the zip)
+includes/page-generator.php  Tools → OrbitCorner Pages: generated search pages for the countdown
+tests/                     Node and PHP tests, run-all.js, wp-stand-ins.php, previews (not shipped in the zip)
 ```
 
 ## The per-tool pattern (copy tools/time-card)
@@ -35,10 +36,19 @@ tests/                     Node tests, run-all.js, previews (not shipped in the 
 | `tools/<name>/<name>-calc.js` | Pure math, no DOM. `window.OC…Calc` in the browser, `module.exports` in Node. Never returns NaN. |
 | `tools/<name>/<name>.php` | `options` (whitelist shortcode attributes) and `render` (prints the full tool and its default result as real HTML, with `data-…` hooks). |
 | `tools/<name>/app.js` | Enhances the printed HTML in place: reads inputs, calls the calc module, updates text. Never rebuilds the DOM on load. |
-| `tests/<name>.test.js` | Plain Node `assert` tests for the calc module, picked up by `tests/run-all.js`. |
-| `tests/build-preview.php` → `tests/preview-<name>.html` | The real shortcode output with WordPress stand-ins, so the preview opens as a file. |
+| `tests/<name>.test.js` | Plain Node `assert` tests for the calc module, picked up by `tests/run-all.js`. PHP logic gets `tests/<name>.test.php` (run too when PHP is installed). |
+| `php tests/build-preview.php <name> [attr=value…]` → `tests/preview-<name>.html` | The real shortcode output with the WordPress stand-ins in `tests/wp-stand-ins.php`, so the preview opens as a file. |
 
 Register the tool in `oc_tools_registry()` (`title`, `description`, `folder`, `scripts`, `render`, `options`, `min_height`), add it to `oc_tools_related_map()` when its page is live.
+
+## Countdown & Date Tool and the page generator
+
+- `tools/countdown/`: four modes (time, date, from, between) in one tool; attributes `mode`, `target`, `holiday`, `label`, `days`, `tabs` (README has the table). `tabs="0"` is a focused page: one mode, a computed paragraph, "More date tools" links, no related-tools list.
+- The server renders in `America/New_York` and labels it; the browser redoes it in the visitor's zone. Never read the clock inside `countdown-calc.js`: every function takes `now`. Calendar dates are Dates at 12:00 local.
+- The holiday list exists twice, in `countdown-calc.js` and `countdown.php`; change both and keep `tests/page-generator.test.php` passing.
+- **Fake clock:** test any moment with `tests/preview-countdown.html?ocnow=2026-12-31T23:59:50` (the Fake now field). It sets `data-oc-now` on the container; `app.js` offsets its clock by it and keeps ticking. The shortcode never prints it. Run edge cases in headless Chrome with `Emulation.setTimezoneOverride` (America/New_York for DST nights).
+- One `setInterval` per page for all live counters, stopped on `visibilitychange`; values always come from the clock. The live region says only the headline, when it changes (once a minute) or after typing stops.
+- Generator: sets in `oc_tools_page_sets()` (filterable), drafts in batches of 50 under hub pages, pages marked with `_oc_tools_page_set` / `_oc_tools_page_key` / `_oc_tools_page_label` meta. Static parts go in `post_content` as core blocks; anything that depends on today comes from the shortcode. All-digit slugs are kept (`pre_wp_unique_post_slug`) and routed (`request`). Admin actions: `manage_options` + nonce via `admin-post.php`.
 
 ## Budgets (hard limits)
 
@@ -48,6 +58,8 @@ Register the tool in `oc_tools_registry()` (`title`, `description`, `folder`, `s
 - No layout shift: the shortcode prints the full tool, and `min_height` (phone and desktop) is set a little under the heights measured in the preview.
 
 Check with `wc -c tools/<name>/*.js`, and measure layout shift and heights in headless Chrome (`/usr/bin/google-chrome`).
+
+Known exception: the countdown's JavaScript is 30.9 KB (10.1 KB gzipped), over the 25 KB limit (its brief asked for 22 KB). It is four tools plus the holiday engine; getting under means dropping features, which is the owner's call. Don't let it grow.
 
 ## UI and accessibility rules
 
