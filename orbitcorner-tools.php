@@ -25,6 +25,7 @@ define( 'OC_TOOLS_DRAFT', 'oc_tools_rates_draft' ); // Transient that keeps a re
 
 require_once OC_TOOLS_DIR . 'tools/time-card/time-card.php';
 require_once OC_TOOLS_DIR . 'tools/countdown/countdown.php';
+require_once OC_TOOLS_DIR . 'includes/page-generator.php';
 
 /*
  * -------------------------------------------------------------------------
@@ -142,7 +143,7 @@ function oc_tools_enqueue_style_early() {
 		return;
 	}
 	$post = get_post();
-	if ( $post && has_shortcode( $post->post_content, 'orbit_tool' ) ) {
+	if ( $post && ( has_shortcode( $post->post_content, 'orbit_tool' ) || has_shortcode( $post->post_content, 'orbit_hub_list' ) ) ) {
 		wp_enqueue_style( 'oc-tools' );
 	}
 }

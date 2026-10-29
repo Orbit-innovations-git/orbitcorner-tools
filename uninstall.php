@@ -12,3 +12,6 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 // The main plugin file is not loaded during uninstall, so the names are repeated here.
 delete_option( 'oc_tools_rates' );
 delete_transient( 'oc_tools_rates_draft' );
+
+// The page generator's settings. Pages it created stay: they are your content.
+delete_option( 'oc_tools_pages' );

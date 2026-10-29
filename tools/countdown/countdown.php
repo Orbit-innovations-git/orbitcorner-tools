@@ -732,5 +732,5 @@ function oc_tools_countdown_focused_extras( $mode, $options, $now ) {
 	foreach ( $links as $key => $text ) {
 		$items .= '<li><a href="' . esc_url( home_url( oc_tools_countdown_page_path() . '?mode=' . $key ) ) . '">' . esc_html( $text ) . '</a></li>';
 	}
-	return $html . '<nav class="oc-cd-more" aria-label="More date tools"><h2 class="oc-related-title">More date tools</h2><ul>' . $items . '</ul></nav>';
+	return $html . '<nav class="oc-related" aria-label="More date tools"><h2 class="oc-related-title">More date tools</h2><ul>' . $items . '</ul></nav>';
 }

@@ -70,6 +70,9 @@ function wp_style_is() {
 }
 function add_action() {}
 function add_filter() {}
+function apply_filters( $hook, $value ) {
+	return $value;
+}
 function add_shortcode() {}
 function add_management_page() {}
 function register_activation_hook() {}

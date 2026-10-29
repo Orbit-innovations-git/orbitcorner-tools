@@ -1399,7 +1399,8 @@
 }
 
 .oc-app .oc-cd :focus-visible,
-.oc-app .oc-cd button:focus-visible {
+.oc-app .oc-cd button:focus-visible,
+.oc-app .oc-hub a:focus-visible {
   outline: 3px solid var(--oc-primary);
   outline-offset: 2px;
   box-shadow: none;
@@ -1738,20 +1739,38 @@
   font-size: 17px;
 }
 
-.oc-app .oc-cd-more ul {
+/* [orbit_hub_list] on hub pages */
+.oc-app ul.oc-hub {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.oc-app .oc-cd-more a {
-  display: inline-flex;
+.oc-app .oc-hub li {
+  margin: 0;
+}
+
+.oc-app .oc-hub a {
+  display: flex;
   align-items: center;
-  min-height: 44px;
-  color: var(--oc-primary);
+  height: 100%;
+  min-height: 48px;
+  padding: 8px 16px;
+  border: 1px solid var(--oc-border);
+  border-radius: 12px;
+  background: var(--oc-card);
+  color: var(--oc-heading);
   font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  text-decoration: none;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.oc-app .oc-hub a:hover {
+  border-color: var(--oc-primary);
+  color: var(--oc-primary-hover);
 }
 
 @container oc-app (max-width: 420px) {
